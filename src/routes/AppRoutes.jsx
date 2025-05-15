@@ -9,7 +9,7 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* routingnya ada di sini*/}
-      <Route path="/" element={<Home />} />
+      <Route path="/home" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
     </Routes>
