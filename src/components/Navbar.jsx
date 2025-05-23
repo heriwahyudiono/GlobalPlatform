@@ -1,15 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, Search, Bell, Mail } from 'lucide-react';
 import { useUser } from '../UserContext';
 import { supabase } from '../supabaseClient';
 
 const Navbar = () => {
   const { userName } = useUser();
+  const [userId, setUserId] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const navigate = useNavigate();
 
-  // Tutup menu jika klik di luar
+  // Ambil ID user saat login
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  // Tutup dropdown jika klik di luar
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -20,6 +35,12 @@ const Navbar = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const handleSearch = (e) => {
+    if (e.key === 'Enter' && searchKeyword.trim() !== '') {
+      navigate(`/search?keyword=${encodeURIComponent(searchKeyword.trim())}`);
+    }
+  };
 
   return (
     <nav className="bg-white p-4 shadow-md">
@@ -36,6 +57,9 @@ const Navbar = () => {
           </span>
           <input
             type="text"
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            onKeyDown={handleSearch}
             placeholder="Cari produk..."
             className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-400 transition"
           />
@@ -68,13 +92,15 @@ const Navbar = () => {
 
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-40 bg-white border rounded-md shadow-lg z-50">
-                  <Link
-                    to="/profile"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    Profile
-                  </Link>
+                  {userId && (
+                    <Link
+                      to={`/profile/${userId}`}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setDropdownOpen(false)}
+                    >
+                      Profile
+                    </Link>
+                  )}
                   <Link
                     to="/settings"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"

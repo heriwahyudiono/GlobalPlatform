@@ -9,6 +9,9 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import AddProduct from './pages/AddProduct';
 import Carts from './pages/Carts';
+import Search from './pages/Search';
+import Inbox from './pages/Inbox';
+import Chat from './pages/Chat';
 
 const App = () => {
   const { setUserName } = useUser();
@@ -39,11 +42,14 @@ const App = () => {
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route path="/profile/:id" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/add-product" element={<AddProduct />} />
           <Route path="/home" element={<Home />} />
           <Route path="/carts" element={<Carts />} />
+          <Route path="/search" element={<Search />} />
+          <Route path="/inbox" element={<Inbox />} />
+          <Route path="/chat/:chat_id" element={<Chat />} />
         </Routes>
       </BrowserRouter>
     </>
