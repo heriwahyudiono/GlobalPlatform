@@ -7,6 +7,8 @@ import { useUser } from '../UserContext';
 
 const Carts = () => {
   const [cartItems, setCartItems] = useState([]);
+  const [selectedItems, setSelectedItems] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user } = useUser();
@@ -40,6 +42,7 @@ const Carts = () => {
         if (error) throw error;
 
         setCartItems(data || []);
+        setSelectedItems([]); // Kosongkan pilihan saat load ulang
         setLoading(false);
       } catch (err) {
         setError(err.message);
@@ -52,17 +55,70 @@ const Carts = () => {
 
   const handleRemoveFromCart = async (cartId) => {
     try {
+      const { error } = await supabase.from('carts').delete().eq('id', cartId);
+      if (error) throw error;
+
+      setCartItems(prev => prev.filter(item => item.id !== cartId));
+      setSelectedItems(prev => prev.filter(id => id !== cartId));
+    } catch (err) {
+      alert('Gagal menghapus item: ' + err.message);
+    }
+  };
+
+  const updateQuantity = async (cartId, newQuantity) => {
+    if (newQuantity < 1) return;
+    try {
       const { error } = await supabase
         .from('carts')
-        .delete()
+        .update({ quantity: newQuantity })
         .eq('id', cartId);
 
       if (error) throw error;
 
-      setCartItems(prev => prev.filter(item => item.id !== cartId));
+      setCartItems(prev =>
+        prev.map(item =>
+          item.id === cartId ? { ...item, quantity: newQuantity } : item
+        )
+      );
     } catch (err) {
-      alert('Gagal menghapus item dari keranjang: ' + err.message);
+      alert('Gagal memperbarui jumlah: ' + err.message);
     }
+  };
+
+  const handleSelectItem = (cartId) => {
+    setSelectedItems((prev) =>
+      prev.includes(cartId)
+        ? prev.filter(id => id !== cartId)
+        : [...prev, cartId]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedItems([]);
+      setSelectAll(false);
+    } else {
+      const allIds = cartItems.map(item => item.id);
+      setSelectedItems(allIds);
+      setSelectAll(true);
+    }
+  };
+
+  const handleCheckout = () => {
+    const itemsToCheckout = cartItems.filter(item => selectedItems.includes(item.id));
+    alert('Checkout item:\n' + itemsToCheckout.map(item => item.products.product_name).join('\n'));
+    // Lanjutkan proses checkout sesuai kebutuhan
+  };
+
+  const getTotalSelectedPrice = () => {
+    return cartItems
+      .filter(item => selectedItems.includes(item.id))
+      .reduce((total, item) => {
+        const discount = 10;
+        const discountPrice = item.products.price * (1 - discount / 100);
+        return total + discountPrice * item.quantity;
+      }, 0)
+      .toFixed(2);
   };
 
   if (loading) {
@@ -91,57 +147,95 @@ const Carts = () => {
         {cartItems.length === 0 ? (
           <p className="text-center text-gray-600">Keranjang kamu masih kosong.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {cartItems.map(item => {
-              const product = item.products;
-              const discount = 10;
-              const discountPrice = (product.price * (1 - discount / 100)).toFixed(2);
+          <>
+            <div className="flex items-center mb-4 gap-2">
+              <input
+                type="checkbox"
+                checked={selectAll}
+                onChange={handleSelectAll}
+                className="w-5 h-5"
+              />
+              <label className="text-gray-700">Pilih Semua</label>
+            </div>
 
-              return (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
-                >
-                  <div className="h-48 overflow-hidden">
+            <div className="space-y-4 pb-24">
+              {cartItems.map(item => {
+                const product = item.products;
+                const discount = 10;
+                const discountPrice = (product.price * (1 - discount / 100)).toFixed(2);
+
+                return (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-4 bg-white rounded-lg shadow p-4"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedItems.includes(item.id)}
+                      onChange={() => handleSelectItem(item.id)}
+                      className="w-5 h-5"
+                    />
                     <img
                       src={product.product_image}
                       alt={product.product_name}
-                      className="w-full h-full object-contain p-4"
+                      className="w-24 h-24 object-contain rounded"
                     />
-                  </div>
-                  <div className="p-4">
-                    <h2 className="text-lg font-semibold mb-1 line-clamp-1">{product.product_name}</h2>
-                    <p className="text-gray-600 text-sm mb-2 line-clamp-2">{product.description}</p>
-
-                    <div className="flex items-center mb-2 space-x-2">
-                      <span className="text-green-600 font-bold text-lg">Rp{discountPrice}</span>
-                      <span className="text-sm text-gray-400 line-through">Rp{product.price}</span>
-                      <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">
-                        {discount}% OFF
-                      </span>
+                    <div className="flex-1">
+                      <h2 className="text-lg font-semibold">{product.product_name}</h2>
+                      <p className="text-gray-600 text-sm">{product.description}</p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className="text-green-600 font-bold text-lg">Rp{discountPrice}</span>
+                        <span className="text-sm text-gray-400 line-through">Rp{product.price}</span>
+                        <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">
+                          {discount}% OFF
+                        </span>
+                      </div>
+                      <div className="flex items-center mt-2 gap-2">
+                        <button
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          className="px-2 py-1 bg-gray-200 rounded"
+                        >
+                          −
+                        </button>
+                        <span>{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          className="px-2 py-1 bg-gray-200 rounded"
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-
-                    <p className="text-sm text-gray-700 mb-2">Jumlah: {item.quantity}</p>
-
-                    <div className="flex gap-2 mt-4">
-                      <button className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition">
-                        Checkout
-                      </button>
-                      <button
-                        onClick={() => handleRemoveFromCart(item.id)}
-                        className="p-2 border border-red-500 text-red-600 rounded-lg hover:bg-red-50 transition"
-                        title="Hapus dari keranjang"
-                      >
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => handleRemoveFromCart(item.id)}
+                      className="p-2 border border-red-500 text-red-600 rounded-lg hover:bg-red-50 transition"
+                      title="Hapus dari keranjang"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
+
+      {/* Tombol Checkout Fixed */}
+      {cartItems.length > 0 && (
+        <div className="fixed bottom-0 right-0 p-4 w-full sm:w-auto bg-white border-t shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-8 sm:rounded-tl-lg">
+          <span className="text-lg font-semibold">
+            Total: <span className="text-green-600">Rp{getTotalSelectedPrice()}</span>
+          </span>
+          <button
+            onClick={handleCheckout}
+            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-lg font-semibold disabled:opacity-50"
+            disabled={selectedItems.length === 0}
+          >
+            Checkout ({selectedItems.length})
+          </button>
+        </div>
+      )}
     </>
   );
 };

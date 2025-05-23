@@ -107,7 +107,7 @@ const Products = () => {
         if (insertError) throw insertError;
       }
 
-      alert('Produk berhasil ditambahkan ke keranjang!');
+      alert('Produk berhasil ditambahkan ke keranjang');
     } catch (err) {
       console.error('Error:', err);
       alert('Gagal menambahkan ke keranjang: ' + err.message);
