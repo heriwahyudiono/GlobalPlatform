@@ -1,36 +1,124 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShoppingCart } from 'lucide-react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import Carousel from '../components/Carousel';
 import Navbar from '../components/Navbar';
+import { supabase } from '../supabaseClient';
+import { useUser } from '../UserContext';
 
-function Home() {
+const Products = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { user, setUserName } = useUser();
+  const navigate = useNavigate();
 
-  // Fetch produk elektronik dari DummyJSON
   useEffect(() => {
-    fetch('https://dummyjson.com/products/category/smartphones')
-      .then((res) => {
-        if (!res.ok) throw new Error('Gagal mengambil data produk');
-        return res.json();
-      })
-      .then((data) => {
-        setProducts(data.products);
-        setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
+    const checkAuth = async () => {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError || !session) {
+        navigate('/login');
+        return;
+      }
+
+      try {
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('name')
+          .eq('id', session.user.id)
+          .maybeSingle();
+
+        if (userError) throw userError;
+        
+        if (userData) {
+          setUserName(userData.name);
+        } else {
+          console.warn('Data user tidak ditemukan, tetapi session valid');
+        }
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+      }
+    };
+
+    checkAuth();
+  }, [navigate, setUserName]);
+
+  const fetchProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*');
+
+      if (error) throw error;
+      
+      setProducts(data || []);
+      setLoading(false);
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
   }, []);
+
+  const handleAddToCart = async (productId) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const { data: existingCart, error: cartError } = await supabase
+        .from('carts')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .eq('product_id', productId)
+        .maybeSingle();
+
+      if (cartError) throw cartError;
+
+      if (existingCart) {
+        const { error: updateError } = await supabase
+          .from('carts')
+          .update({ 
+            quantity: existingCart.quantity + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingCart.id);
+
+        if (updateError) throw updateError;
+      } else {
+        const { error: insertError } = await supabase
+          .from('carts')
+          .insert({
+            product_id: productId,
+            user_id: session.user.id,
+            quantity: 1,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+        if (insertError) throw insertError;
+      }
+
+      alert('Produk berhasil ditambahkan ke keranjang!');
+    } catch (err) {
+      console.error('Error:', err);
+      alert('Gagal menambahkan ke keranjang: ' + err.message);
+    }
+  };
 
   if (loading) {
     return (
       <>
         <Navbar />
-        <div className="text-center mt-10 text-xl">Loading products...</div>
+        <div className="text-center mt-10 text-xl">Memuat produk...</div>
       </>
     );
   }
@@ -51,12 +139,12 @@ function Home() {
         <Carousel />
       </div>
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold text-center mb-8">Produk Elektronik</h1>
+        <h1 className="text-2xl font-bold text-center mb-8">Daftar Produk</h1>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.map(product => {
             const discount = 10;
             const discountPrice = (product.price * (1 - discount / 100)).toFixed(2);
-            const rating = product.rating ?? 4;
+            const rating = product.rating || 4;
 
             return (
               <div
@@ -65,13 +153,13 @@ function Home() {
               >
                 <div className="h-48 overflow-hidden">
                   <img
-                    src={product.thumbnail}
-                    alt={product.title}
+                    src={product.product_image}
+                    alt={product.product_name}
                     className="w-full h-full object-contain p-4"
                   />
                 </div>
                 <div className="p-4">
-                  <h2 className="text-lg font-semibold mb-2 line-clamp-1">{product.title}</h2>
+                  <h2 className="text-lg font-semibold mb-2 line-clamp-1">{product.product_name}</h2>
                   <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
 
                   <div className="flex items-center mb-2">
@@ -84,17 +172,17 @@ function Home() {
                         )}
                       </span>
                     ))}
-                    <span className="text-gray-500 text-xs ml-2">{product.stock} stok</span>
+                    <span className="text-gray-500 text-xs ml-2">{product.stock || 100} stok</span>
                   </div>
 
                   <div className="text-sm text-gray-500 mb-1">
-                    {product.stock * 2} terjual
+                    {(product.sold || 200)} terjual
                   </div>
 
                   <div className="flex flex-col mb-2 space-y-1">
                     <div className="flex items-center space-x-2">
-                      <span className="text-green-600 font-bold text-lg">${discountPrice}</span>
-                      <span className="text-sm text-gray-400 line-through">${product.price}</span>
+                      <span className="text-green-600 font-bold text-lg">Rp{discountPrice}</span>
+                      <span className="text-sm text-gray-400 line-through">Rp{product.price}</span>
                       <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">
                         {discount}% OFF
                       </span>
@@ -108,7 +196,10 @@ function Home() {
                     <button className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition">
                       Beli Sekarang
                     </button>
-                    <button className="p-2 border border-green-500 text-green-600 rounded-lg hover:bg-green-50 transition">
+                    <button 
+                      onClick={() => handleAddToCart(product.id)}
+                      className="p-2 border border-green-500 text-green-600 rounded-lg hover:bg-green-50 transition"
+                    >
                       <ShoppingCart className="w-5 h-5" />
                     </button>
                   </div>
@@ -120,6 +211,6 @@ function Home() {
       </div>
     </>
   );
-}
+};
 
-export default Home;
+export default Products;

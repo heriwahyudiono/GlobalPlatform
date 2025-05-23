@@ -1,11 +1,40 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { FcGoogle } from 'react-icons/fc';
+import { supabase } from '../supabaseClient';
 
 function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const navigate = useNavigate();
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        setErrorMessage(error.message);
+        return;
+      }
+
+      if (data?.user) {
+        navigate('/products');
+      }
+    } catch (err) {
+      setErrorMessage('Unexpected error occurred. Please try again.');
+      console.error('Login error:', err);
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-gray-50 font-sans">
-      {/* Kiri: Logo dan Nama Web */}
       <div className="hidden lg:flex w-1/2 bg-green-600 items-center justify-center">
         <div className="text-center px-8">
           <img 
@@ -14,11 +43,10 @@ function Login() {
             className="mx-auto w-64 h-64 object-contain" 
           />
           <h1 className="text-white text-4xl font-bold">GlobalMarket</h1>
-          <p className="text-white text-lg">Pusat Perdagangan Dunia!</p>
+          <p className="text-white text-lg">Menghubungkan Seluruh Dunia!</p>
         </div>
       </div>
 
-      {/* Kanan: Form Login (Hanya Tampilan) */}
       <div className="flex flex-col justify-center w-full lg:w-1/2 px-8 py-12">
         <div className="max-w-md w-full mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 text-center">Login</h2>
@@ -26,7 +54,7 @@ function Login() {
 
         <div className="mt-8 max-w-md w-full mx-auto">
           <div className="bg-white py-10 px-8 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
-            <form className="space-y-6">
+            <form className="space-y-6" onSubmit={handleLogin}>
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                   Email
@@ -36,6 +64,8 @@ function Login() {
                     id="email"
                     name="email"
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-400 transition"
                   />
@@ -51,6 +81,8 @@ function Login() {
                     id="password"
                     name="password"
                     type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-400 transition"
                   />
@@ -64,12 +96,16 @@ function Login() {
 
               <div>
                 <button
-                  type="button"
+                  type="submit"
                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition"
                 >
                   Login
                 </button>
               </div>
+
+              {errorMessage && (
+                <p className="text-red-500 text-sm text-center">{errorMessage}</p>
+              )}
 
               <div className="flex items-center my-4">
                 <div className="flex-grow border-t border-gray-300"></div>

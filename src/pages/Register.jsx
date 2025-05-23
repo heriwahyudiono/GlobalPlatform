@@ -1,15 +1,55 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 import { FcGoogle } from 'react-icons/fc';
 
 const Register = () => {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const navigate = useNavigate();
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+
+    try {
+      const { data, error } = await supabase.auth.signUp({ email, password });
+
+      if (error) {
+        setErrorMessage(error.message);
+        return;
+      }
+
+      if (data?.user) {
+        const { error: insertError } = await supabase.from('profiles').insert([
+          {
+            id: data.user.id,
+            name,
+          },
+        ]);
+
+        if (insertError) {
+          setErrorMessage(insertError.message);
+          return;
+        }
+
+        navigate('/home');
+      }
+    } catch (err) {
+      setErrorMessage('Unexpected error occurred. Please try again later.');
+      console.error('Register error:', err);
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-gray-50 font-sans">
       <div className="hidden lg:flex w-1/2 bg-green-600 items-center justify-center">
         <div className="text-center px-8">
           <img src="" alt="GlobalMarket Logo" className="mx-auto w-64 h-64 object-contain" />
           <h1 className="text-white text-4xl font-bold">GlobalMarket</h1>
-          <p className="text-white text-lg">Pusat Perdagangan Dunia!</p>
+          <p className="text-white text-lg">Menghubungkan Seluruh Dunia!</p>
         </div>
       </div>
 
@@ -20,7 +60,7 @@ const Register = () => {
 
         <div className="mt-8 max-w-md w-full mx-auto">
           <div className="bg-white py-10 px-8 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
-            <form className="space-y-6">
+            <form onSubmit={handleRegister} className="space-y-6">
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700">Name</label>
                 <div className="mt-1">
@@ -28,6 +68,8 @@ const Register = () => {
                     id="name"
                     name="name"
                     type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     required
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-400 transition"
                   />
@@ -41,6 +83,8 @@ const Register = () => {
                     id="email"
                     name="email"
                     type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     required
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-400 transition"
                   />
@@ -54,6 +98,8 @@ const Register = () => {
                     id="password"
                     name="password"
                     type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     required
                     className="w-full px-4 py-2 border border-gray-200 rounded-lg shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-400 transition"
                   />
@@ -62,7 +108,7 @@ const Register = () => {
 
               <div>
                 <button
-                  type="button"
+                  type="submit"
                   className="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition"
                 >
                   Register
@@ -84,10 +130,14 @@ const Register = () => {
               </button>
             </form>
 
+            {errorMessage && (
+              <p className="text-red-500 text-sm mt-4 text-center">{errorMessage}</p>
+            )}
+
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
                 Sudah punya akun?{' '}
-                <Link to="/login" className="font-medium text-green-600 hover:text-green-500">
+                <Link to="/" className="font-medium text-green-600 hover:text-green-500">
                   Login
                 </Link>
               </p>
