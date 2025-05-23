@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ShoppingCart, Search, Bell, Mail } from 'lucide-react';
 import { useUser } from '../UserContext';
@@ -6,6 +6,20 @@ import { supabase } from '../supabaseClient';
 
 const Navbar = () => {
   const { userName } = useUser();
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Tutup menu jika klik di luar
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <nav className="bg-white p-4 shadow-md">
@@ -39,8 +53,11 @@ const Navbar = () => {
           </Link>
 
           {userName && (
-            <div className="relative group">
-              <div className="flex items-center gap-2 px-3 py-1 bg-green-50 rounded-full group-hover:bg-green-100 transition cursor-pointer">
+            <div className="relative" ref={dropdownRef}>
+              <div
+                className="flex items-center gap-2 px-3 py-1 bg-green-50 rounded-full hover:bg-green-100 transition cursor-pointer"
+                onClick={() => setDropdownOpen(prev => !prev)}
+              >
                 <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
                   <span className="text-white font-bold text-sm">
                     {userName.charAt(0).toUpperCase()}
@@ -49,29 +66,33 @@ const Navbar = () => {
                 <span className="text-sm text-gray-700 font-medium">Hi, {userName}</span>
               </div>
 
-              <div className="absolute right-0 mt-2 w-40 bg-white border rounded-md shadow-lg z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-within:opacity-100 group-focus-within:visible transition duration-200">
-                <Link
-                  to="/profile"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Profile
-                </Link>
-                <Link
-                  to="/settings"
-                  className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  Settings
-                </Link>
-                <button
-                  onClick={async () => {
-                    await supabase.auth.signOut();
-                    window.location.href = '/login';
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
-                >
-                  Logout
-                </button>
-              </div>
+              {dropdownOpen && (
+                <div className="absolute right-0 mt-2 w-40 bg-white border rounded-md shadow-lg z-50">
+                  <Link
+                    to="/profile"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    Profile
+                  </Link>
+                  <Link
+                    to="/settings"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    Settings
+                  </Link>
+                  <button
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      window.location.href = '/login';
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

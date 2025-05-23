@@ -6,6 +6,7 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import Settings from './pages/Settings';
 import AddProduct from './pages/AddProduct';
 import Carts from './pages/Carts';
 
@@ -39,6 +40,7 @@ const App = () => {
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="/add-product" element={<AddProduct />} />
           <Route path="/home" element={<Home />} />
           <Route path="/carts" element={<Carts />} />
