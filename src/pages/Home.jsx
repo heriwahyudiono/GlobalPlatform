@@ -19,7 +19,7 @@ const Products = () => {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError || !session) {
-        navigate('/login');
+        navigate('/');
         return;
       }
 

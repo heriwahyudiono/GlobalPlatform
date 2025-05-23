@@ -25,7 +25,7 @@ function Login() {
       }
 
       if (data?.user) {
-        navigate('/products');
+        navigate('/home');
       }
     } catch (err) {
       setErrorMessage('Unexpected error occurred. Please try again.');
