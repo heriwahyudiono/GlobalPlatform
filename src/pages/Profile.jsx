@@ -1,106 +1,59 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import Navbar from '../components/Navbar';
 
 const Profile = () => {
-  const { id } = useParams(); // ambil id dari URL
-  const navigate = useNavigate();
-  const [userData, setUserData] = useState({ name: '', profile_picture: '' });
+  const { id } = useParams(); // Ambil ID dari URL
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
       setLoading(true);
-      const { data: sessionData } = await supabase.auth.getUser();
-      setCurrentUserId(sessionData?.user?.id || null);
-
-      const { data: profileData, error } = await supabase
+      setError('');
+      const { data, error } = await supabase
         .from('profiles')
-        .select('name, profile_picture')
+        .select('name, email, profile_picture, gender') // Tambahkan gender
         .eq('id', id)
         .single();
 
       if (error) {
-        console.error('Gagal ambil profil:', error.message);
+        setError('Gagal memuat profil.');
+        console.error('Fetch profile error:', error);
       } else {
-        setUserData(profileData);
+        setProfile(data);
       }
 
       setLoading(false);
     };
 
-    fetchProfile();
+    if (id) {
+      fetchProfile();
+    }
   }, [id]);
 
-  const getAvatar = () => {
-    if (userData.profile_picture) {
-      return (
-        <img
-          src={userData.profile_picture}
-          alt="Profile"
-          className="w-24 h-24 rounded-full object-cover"
-        />
-      );
-    }
-
-    const initials = getAvatarInitials(userData.name);
-    return (
-      <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center text-white text-3xl font-bold">
-        {initials}
-      </div>
-    );
-  };
-
-  const getAvatarInitials = (fullName) => {
-    if (!fullName) return '';
-    const parts = fullName.split(' ');
-    return parts.length === 1
-      ? parts[0].charAt(0).toUpperCase()
-      : parts[0].charAt(0).toUpperCase() + parts[1].charAt(0).toUpperCase();
-  };
-
-  const handleChat = async () => {
-    if (!currentUserId) return;
-
-    const participants = [currentUserId, id].sort(); // urutkan ID untuk konsistensi
-    const chatId = `${participants[0]}_${participants[1]}`;
-
-    navigate(`/chat/${chatId}`);
-  };
-
   if (loading) {
-    return (
-      <>
-        <Navbar />
-        <div className="text-center mt-20"><p>Loading profile...</p></div>
-      </>
-    );
+    return <div className="text-center py-10">Memuat profil...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center text-red-500 py-10">{error}</div>;
   }
 
   return (
-    <>
-      <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <div className="bg-white shadow-lg rounded-lg max-w-lg mx-auto p-8">
-          <div className="flex items-center justify-center mb-6">{getAvatar()}</div>
-          <div className="mb-4 text-center">
-            <h2 className="text-2xl font-semibold text-gray-800">{userData.name}</h2>
-          </div>
-
-          {/* Tombol Kirim Pesan */}
-          {currentUserId && currentUserId !== id && (
-            <button
-              onClick={handleChat}
-              className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
-            >
-              Kirim Pesan
-            </button>
-          )}
-        </div>
+    <div className="max-w-2xl mx-auto mt-10 bg-white shadow-md rounded-2xl p-6">
+      <div className="flex flex-col items-center text-center">
+        {/* Foto profil */}
+        <img
+          src={profile?.profile_picture || 'https://via.placeholder.com/150'}
+          alt="Profile"
+          className="w-32 h-32 rounded-full object-cover border-4 border-green-500"
+        />
+        <h2 className="mt-4 text-2xl font-bold text-gray-800">{profile?.name || 'Tidak diketahui'}</h2>
+        <p className="text-gray-600">{profile?.email}</p>
       </div>
-    </>
+    </div>
   );
 };
 

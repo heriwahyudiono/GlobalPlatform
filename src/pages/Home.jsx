@@ -151,17 +151,25 @@ const Products = () => {
                 key={product.id}
                 className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
               >
-                <div className="h-48 overflow-hidden">
-                  <img
-                    src={product.product_image}
-                    alt={product.product_name}
-                    className="w-full h-full object-contain p-4"
-                  />
+                {/* Klik bagian ini untuk buka detail */}
+                <div
+                  onClick={() => navigate(`/product/${product.id}`)}
+                  className="cursor-pointer"
+                >
+                  <div className="h-48 overflow-hidden">
+                    <img
+                      src={product.product_image}
+                      alt={product.product_name}
+                      className="w-full h-full object-contain p-4"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h2 className="text-lg font-semibold mb-2 line-clamp-1">{product.product_name}</h2>
+                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
+                  </div>
                 </div>
-                <div className="p-4">
-                  <h2 className="text-lg font-semibold mb-2 line-clamp-1">{product.product_name}</h2>
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
 
+                <div className="px-4 pb-4">
                   <div className="flex items-center mb-2">
                     {Array.from({ length: 5 }, (_, index) => (
                       <span key={index}>

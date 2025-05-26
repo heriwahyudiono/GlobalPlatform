@@ -1,13 +1,5 @@
 import { useState, useEffect } from 'react';
-/* 
-useState : untuk membuat state lokal fungsinya untuk menyimpan data dalam komponen
-useEffect : untuk menjalankan kode tambahan setelah komponen selesai dirender 
-seperti mengambil data, mengecek autentikasi, atau berinteraksi dengan API
-*/
 import { useNavigate } from 'react-router-dom';
-/*
-useNavigate : untuk navigasi
-*/
 import { supabase } from '../supabaseClient';
 
 const AddProduct = () => {
@@ -24,9 +16,6 @@ const AddProduct = () => {
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      /*
-      const { data: { session } } : variabel yang isinya properti yang berupa objek
-      */
       if (!session) {
         navigate('/login'); 
         return;
@@ -38,7 +27,7 @@ const AddProduct = () => {
   }, [navigate]);
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); // berfungsi untuk mencegah reloaad halaman 
+    e.preventDefault();
     setMessage('');
     setError('');
 
@@ -95,6 +84,7 @@ const AddProduct = () => {
       setPrice('');
       setImageFile(null);
       setMessage('Product added successfully!');
+      window.alert('Produk berhasil ditambahkan');
     } catch (err) {
       setError('Unexpected error occurred. Please try again.');
       console.error('Unexpected error:', err);

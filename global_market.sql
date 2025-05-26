@@ -1,7 +1,10 @@
 CREATE TABLE profiles (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name VARCHAR(100),
+  email VARCHAR(255),
   profile_picture VARCHAR(255),
+  gender VARCHAR(20), 
+  role VARCHAR(20),   
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

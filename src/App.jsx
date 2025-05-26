@@ -12,6 +12,7 @@ import Carts from './pages/Carts';
 import Search from './pages/Search';
 import Inbox from './pages/Inbox';
 import Chat from './pages/Chat';
+import ProductDetail from './pages/ProductDetail';
 
 const App = () => {
   const { setUserName } = useUser();
@@ -50,6 +51,7 @@ const App = () => {
           <Route path="/search" element={<Search />} />
           <Route path="/inbox" element={<Inbox />} />
           <Route path="/chat/:chat_id" element={<Chat />} />
+          <Route path="/product/:id" element={<ProductDetail />} />
         </Routes>
       </BrowserRouter>
     </>
