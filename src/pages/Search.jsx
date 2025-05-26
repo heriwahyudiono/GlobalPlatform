@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
 import { ShoppingCart } from 'lucide-react';
+import { FaStar, FaRegStar } from 'react-icons/fa';
 
 const useQuery = () => {
   return new URLSearchParams(useLocation().search);
@@ -48,7 +49,7 @@ const Search = () => {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
-      navigate('/login'); // arahkan ke login jika belum login
+      navigate('/login');
       return;
     }
 
@@ -112,45 +113,84 @@ const Search = () => {
           <p>Tidak ada produk yang cocok dengan pencarian.</p>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {products.map((product) => (
-            <div
-              key={product.id}
-              className="border rounded-lg p-4 flex flex-col"
-            >
-              {/* Klik image dan nama produk menuju detail */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {products.map((product) => {
+            const discount = 10;
+            const discountPrice = (product.price * (1 - discount / 100)).toFixed(2);
+            const rating = product.rating || 4;
+
+            return (
               <div
-                className="cursor-pointer"
-                onClick={() => navigate(`/product/${product.id}`)}
+                key={product.id}
+                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow flex flex-col"
               >
-                <img
-                  src={product.product_image || '/default-product.png'}
-                  alt={product.product_name}
-                  className="w-full h-48 object-cover rounded-md mb-4"
-                />
-                <h2 className="text-lg font-semibold mb-2">{product.product_name}</h2>
-              </div>
-
-              <p className="text-green-600 font-bold mb-2">Rp {product.price.toLocaleString('id-ID')}</p>
-              <p className="text-gray-600 flex-grow">{product.description?.substring(0, 100)}...</p>
-
-              <div className="flex gap-3 mt-4">
-                <button
-                  onClick={handleBuyNow}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg transition"
+                <div
+                  onClick={() => navigate(`/product/${product.id}`)}
+                  className="cursor-pointer"
                 >
-                  Beli Sekarang
-                </button>
-                <button
-                  onClick={() => handleAddToCart(product.id)}
-                  className="p-2 border border-green-600 text-green-600 rounded-lg hover:bg-green-50 transition"
-                  aria-label="Tambah ke keranjang"
-                >
-                  <ShoppingCart className="w-5 h-5" />
-                </button>
+                  <div className="h-48 overflow-hidden">
+                    <img
+                      src={product.product_image || '/default-product.png'}
+                      alt={product.product_name}
+                      className="w-full h-full object-contain p-4"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h2 className="text-lg font-semibold mb-2 line-clamp-1">{product.product_name}</h2>
+                    <p className="text-gray-600 text-sm mb-3 line-clamp-2">{product.description}</p>
+                  </div>
+                </div>
+
+                <div className="px-4 pb-4 mt-auto">
+                  <div className="flex items-center mb-2">
+                    {Array.from({ length: 5 }, (_, index) => (
+                      <span key={index}>
+                        {rating > index ? (
+                          <FaStar className="text-yellow-500 w-4 h-4" />
+                        ) : (
+                          <FaRegStar className="text-yellow-500 w-4 h-4" />
+                        )}
+                      </span>
+                    ))}
+                    <span className="text-gray-500 text-xs ml-2">{product.stock || 100} stok</span>
+                  </div>
+
+                  <div className="text-sm text-gray-500 mb-1">
+                    {(product.sold || 200)} terjual
+                  </div>
+
+                  <div className="flex flex-col mb-2 space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-green-600 font-bold text-lg">Rp{discountPrice}</span>
+                      <span className="text-sm text-gray-400 line-through">Rp{product.price}</span>
+                      <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">
+                        {discount}% OFF
+                      </span>
+                    </div>
+                    <span className="text-xs bg-yellow-100 text-yellow-800 w-fit px-2 py-0.5 rounded">
+                      COD Tersedia
+                    </span>
+                  </div>
+
+                  <div className="flex mt-4 gap-2">
+                    <button
+                      onClick={handleBuyNow}
+                      className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition"
+                    >
+                      Beli Sekarang
+                    </button>
+                    <button
+                      onClick={() => handleAddToCart(product.id)}
+                      className="p-2 border border-green-500 text-green-600 rounded-lg hover:bg-green-50 transition"
+                      aria-label="Tambah ke keranjang"
+                    >
+                      <ShoppingCart className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </>
