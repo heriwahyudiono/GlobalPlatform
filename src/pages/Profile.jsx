@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
+import { v4 as uuidv4 } from 'uuid';
 
 const Profile = () => {
-  const { id } = useParams();
+  const { id: receiverId } = useParams();
   const [profile, setProfile] = useState({
     name: '',
     email: '',
@@ -15,7 +16,8 @@ const Profile = () => {
   const [error, setError] = useState('');
   const [editing, setEditing] = useState(false);
   const [imageFile, setImageFile] = useState(null);
-  const [currentUserId, setCurrentUserId] = useState(null); // ID user yang login
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchUserAndProfile = async () => {
@@ -32,7 +34,7 @@ const Profile = () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('name, email, profile_picture, gender')
-        .eq('id', id)
+        .eq('id', receiverId)
         .single();
 
       if (error) {
@@ -45,10 +47,10 @@ const Profile = () => {
       setLoading(false);
     };
 
-    if (id) {
+    if (receiverId) {
       fetchUserAndProfile();
     }
-  }, [id]);
+  }, [receiverId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -66,7 +68,7 @@ const Profile = () => {
 
     if (imageFile) {
       const fileExt = imageFile.name.split('.').pop();
-      const fileName = `${id}.${fileExt}`;
+      const fileName = `${currentUserId}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -92,7 +94,7 @@ const Profile = () => {
     const { error } = await supabase
       .from('profiles')
       .update({ ...profile, profile_picture: imageUrl })
-      .eq('id', id);
+      .eq('id', currentUserId);
 
     if (error) {
       alert('Gagal memperbarui profil.');
@@ -103,6 +105,29 @@ const Profile = () => {
       setProfile((prev) => ({ ...prev, profile_picture: imageUrl }));
       setImageFile(null);
     }
+  };
+
+  const handleSendMessage = async () => {
+    if (!currentUserId || !receiverId) return;
+
+    // Generate chat_id menggunakan UUID v4
+    const chatId = uuidv4();
+
+    // Buat chat baru dengan chat_id yang baru dibuat
+    const { error } = await supabase.from('chats').insert({
+      chat_id: chatId,
+      sender_id: currentUserId,
+      receiver_id: receiverId,
+      message: '👋', // pesan awal default
+    });
+
+    if (error) {
+      console.error('Error creating chat:', error);
+      return;
+    }
+
+    // Arahkan ke halaman chat dengan chat_id yang baru dibuat
+    navigate(`/chat/${chatId}`);
   };
 
   if (loading) return <div className="text-center py-10">Memuat profil...</div>;
@@ -123,7 +148,7 @@ const Profile = () => {
             className="w-32 h-32 rounded-full object-cover border-4 border-green-500"
           />
 
-          {editing && currentUserId === id ? (
+          {editing && currentUserId === receiverId ? (
             <div className="w-full mt-4 space-y-4">
               <input
                 type="file"
@@ -183,13 +208,19 @@ const Profile = () => {
               </h2>
               <p className="text-gray-600">{profile.email}</p>
 
-              {/* Tampilkan tombol edit hanya jika user adalah pemilik profil */}
-              {currentUserId === id && (
+              {currentUserId === receiverId ? (
                 <button
                   onClick={() => setEditing(true)}
                   className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
                 >
                   Edit Profil
+                </button>
+              ) : (
+                <button
+                  onClick={handleSendMessage}
+                  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                >
+                  Kirim Pesan
                 </button>
               )}
             </>

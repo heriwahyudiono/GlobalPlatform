@@ -1,83 +1,183 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
+import { supabase } from "../supabaseClient";
+import Navbar from "../components/Navbar";
 
 const Chat = () => {
   const { chat_id } = useParams();
   const [messages, setMessages] = useState([]);
-  const [newMsg, setNewMsg] = useState('');
-  const [userId, setUserId] = useState('');
+  const [inputMessage, setInputMessage] = useState("");
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const [receiverProfile, setReceiverProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const init = async () => {
+    const fetchCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user.id);
-
-      const { data } = await supabase
-        .from('chats')
-        .select('*, profiles!chats_sender_id_fkey(name, profile_picture)')
-        .eq('chat_id', chat_id)
-        .order('created_at', { ascending: true });
-
-      setMessages(data || []);
+      if (user) {
+        setCurrentUserId(user.id);
+      }
     };
 
-    init();
+    fetchCurrentUser();
+  }, []);
 
-    const channel = supabase
-      .channel('realtime:chats')
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'chats',
-        filter: `chat_id=eq.${chat_id}`
-      }, (payload) => {
-        setMessages(prev => [...prev, payload.new]);
-      })
+  useEffect(() => {
+    if (!chat_id || !currentUserId) return;
+
+    const fetchMessagesAndReceiver = async () => {
+      setLoading(true);
+
+      // Ambil semua pesan dalam chat ini
+      const { data: messagesData, error: messagesError } = await supabase
+        .from("chats")
+        .select("*")
+        .eq("chat_id", chat_id)
+        .order("created_at", { ascending: true });
+
+      if (messagesError) {
+        console.error("Error fetching messages:", messagesError);
+        setLoading(false);
+        return;
+      }
+
+      setMessages(messagesData);
+
+      // Tentukan siapa receiver-nya
+      if (messagesData.length > 0) {
+        const receiverId = 
+          messagesData[0].sender_id === currentUserId 
+            ? messagesData[0].receiver_id 
+            : messagesData[0].sender_id;
+
+        // Ambil profil receiver
+        const { data: profileData, error: profileError } = await supabase
+          .from("profiles")
+          .select("name, profile_picture")
+          .eq("id", receiverId)
+          .single();
+
+        if (profileError) {
+          console.error("Error fetching receiver profile:", profileError);
+        } else {
+          setReceiverProfile(profileData);
+        }
+      }
+
+      setLoading(false);
+    };
+
+    fetchMessagesAndReceiver();
+
+    // Setup realtime subscription untuk pesan baru
+    const subscription = supabase
+      .channel(`chat:${chat_id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "chats",
+          filter: `chat_id=eq.${chat_id}`
+        },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new]);
+        }
+      )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(subscription);
     };
-  }, [chat_id]);
+  }, [chat_id, currentUserId]);
 
-  const sendMessage = async () => {
-    if (!newMsg.trim()) return;
+  const handleSendMessage = async () => {
+    if (inputMessage.trim() === "" || !currentUserId || !chat_id) return;
 
-    await supabase.from('chats').insert({
+    // Tentukan receiver_id dari pesan pertama
+    let receiverId = null;
+    if (messages.length > 0) {
+      receiverId = 
+        messages[0].sender_id === currentUserId 
+          ? messages[0].receiver_id 
+          : messages[0].sender_id;
+    } else {
+      console.error("Tidak dapat menentukan penerima pesan");
+      return;
+    }
+
+    const { error } = await supabase.from("chats").insert({
       chat_id,
-      sender_id: userId,
-      message: newMsg
+      sender_id: currentUserId,
+      receiver_id: receiverId,
+      message: inputMessage,
     });
 
-    setNewMsg('');
+    if (error) {
+      console.error("Error sending message:", error);
+      return;
+    }
+
+    setInputMessage("");
   };
 
+  if (loading) return <div className="text-center py-10">Memuat pesan...</div>;
+
   return (
-    <div className="max-w-2xl mx-auto p-4">
-      <div className="text-xl font-semibold mb-4">Chat Room</div>
-      <div className="space-y-2 mb-4 h-[400px] overflow-y-auto">
-        {messages.map(msg => (
-          <div key={msg.id} className={`flex ${msg.sender_id === userId ? 'justify-end' : 'justify-start'}`}>
-            <div className={`p-2 rounded-md ${msg.sender_id === userId ? 'bg-green-200' : 'bg-gray-200'}`}>
-              {msg.message}
-            </div>
+    <>
+      <Navbar />
+      <div className="max-w-2xl mx-auto mt-10 bg-white shadow-md rounded-2xl p-6">
+        {receiverProfile && (
+          <div className="flex items-center mb-6 pb-4 border-b">
+            <img
+              src={receiverProfile.profile_picture || 'https://via.placeholder.com/150'}
+              alt="Profile"
+              className="w-12 h-12 rounded-full object-cover mr-3"
+            />
+            <h2 className="text-xl font-semibold">{receiverProfile.name}</h2>
           </div>
-        ))}
+        )}
+
+        <div className="h-96 overflow-y-auto mb-4 space-y-3">
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex ${msg.sender_id === currentUserId ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                  msg.sender_id === currentUserId
+                    ? 'bg-blue-500 text-white rounded-br-none'
+                    : 'bg-gray-200 text-gray-800 rounded-bl-none'
+                }`}
+              >
+                <p>{msg.message}</p>
+                <p className="text-xs opacity-70 mt-1">
+                  {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Tulis pesan..."
+            value={inputMessage}
+            onChange={(e) => setInputMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+            className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <button
+            onClick={handleSendMessage}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Kirim
+          </button>
+        </div>
       </div>
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={newMsg}
-          onChange={e => setNewMsg(e.target.value)}
-          placeholder="Tulis pesan..."
-          className="flex-1 p-2 border rounded"
-        />
-        <button onClick={sendMessage} className="bg-green-500 text-white px-4 py-2 rounded">
-          Kirim
-        </button>
-      </div>
-    </div>
+    </>
   );
 };
 

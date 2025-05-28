@@ -14,7 +14,7 @@ CREATE TABLE chats (
   chat_id UUID NOT NULL,
   sender_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   receiver_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  message TEXT NOT NULL,
+  message TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
