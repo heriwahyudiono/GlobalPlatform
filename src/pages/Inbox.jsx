@@ -1,53 +1,214 @@
-import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import Navbar from '../components/Navbar';
 
 const Inbox = () => {
   const [chats, setChats] = useState([]);
-  const [userId, setUserId] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchChats = async () => {
+    const fetchCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      setUserId(user.id);
-
-      const { data, error } = await supabase
-        .from('chats')
-        .select('chat_id, sender_id, message, created_at, profiles!chats_sender_id_fkey(name, profile_picture)')
-        .or(`receiver_id.eq.${user.id},sender_id.eq.${user.id}`)
-        .order('created_at', { ascending: false });
-
-      if (!error) {
-        const uniqueChats = Array.from(
-          new Map(data.map(chat => [chat.chat_id, chat])).values()
-        );
-        setChats(uniqueChats);
+      if (user) {
+        setCurrentUserId(user.id);
       }
     };
 
-    fetchChats();
+    fetchCurrentUser();
   }, []);
 
+  useEffect(() => {
+    if (!currentUserId) return;
+
+    const fetchChats = async () => {
+      setLoading(true);
+      
+      // Ambil semua chat yang melibatkan user saat ini
+      const { data: chatsData, error: chatsError } = await supabase
+        .from('chats')
+        .select('*')
+        .or(`sender_id.eq.${currentUserId},receiver_id.eq.${currentUserId}`)
+        .order('created_at', { ascending: false });
+
+      if (chatsError) {
+        console.error('Error fetching chats:', chatsError);
+        setLoading(false);
+        return;
+      }
+
+      // Kelompokkan chat berdasarkan chat_id dan ambil pesan terakhir
+      const uniqueChats = {};
+      chatsData.forEach(chat => {
+        if (!uniqueChats[chat.chat_id]) {
+          uniqueChats[chat.chat_id] = chat;
+        }
+      });
+
+      // Ambil profil dari semua user yang pernah mengobrol
+      const chatUsers = Object.values(uniqueChats).map(chat => 
+        chat.sender_id === currentUserId ? chat.receiver_id : chat.sender_id
+      );
+
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, name, profile_picture')
+        .in('id', chatUsers);
+
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        setLoading(false);
+        return;
+      }
+
+      // Gabungkan data chat dengan profil pengguna
+      const enrichedChats = Object.values(uniqueChats).map(chat => {
+        const otherUserId = chat.sender_id === currentUserId ? chat.receiver_id : chat.sender_id;
+        const profile = profilesData.find(p => p.id === otherUserId);
+        
+        return {
+          ...chat,
+          otherUser: profile || { name: 'Unknown', profile_picture: '' },
+          lastMessage: chat.message,
+          lastMessageTime: chat.created_at
+        };
+      });
+
+      setChats(enrichedChats);
+      setLoading(false);
+    };
+
+    fetchChats();
+
+    // Setup realtime subscription untuk chat baru
+    const subscription = supabase
+      .channel('inbox_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chats',
+          filter: `sender_id=eq.${currentUserId},receiver_id=eq.${currentUserId}`
+        },
+        (payload) => {
+          // Update chat list ketika ada pesan baru
+          setChats(prev => {
+            const existingChat = prev.find(c => c.chat_id === payload.new.chat_id);
+            if (existingChat) {
+              return prev.map(c => 
+                c.chat_id === payload.new.chat_id 
+                  ? { 
+                      ...c, 
+                      lastMessage: payload.new.message,
+                      lastMessageTime: payload.new.created_at
+                    } 
+                  : c
+              ).sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+            } else {
+              // Jika chat baru, perlu fetch profil user
+              const fetchNewChatUser = async () => {
+                const otherUserId = payload.new.sender_id === currentUserId 
+                  ? payload.new.receiver_id 
+                  : payload.new.sender_id;
+                
+                const { data } = await supabase
+                  .from('profiles')
+                  .select('id, name, profile_picture')
+                  .eq('id', otherUserId)
+                  .single();
+
+                return {
+                  ...payload.new,
+                  otherUser: data || { name: 'Unknown', profile_picture: '' },
+                  lastMessage: payload.new.message,
+                  lastMessageTime: payload.new.created_at
+                };
+              };
+
+              fetchNewChatUser().then(newChat => {
+                setChats(prev => [newChat, ...prev]);
+              });
+
+              return prev;
+            }
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [currentUserId]);
+
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) {
+      return formatTime(dateString);
+    } else if (date.toDateString() === yesterday.toDateString()) {
+      return 'Kemarin';
+    } else {
+      return date.toLocaleDateString([], { day: 'numeric', month: 'short' });
+    }
+  };
+
+  if (loading) return <div className="text-center py-10">Memuat pesan...</div>;
+
   return (
-    <div className="max-w-xl mx-auto py-6">
-      <h1 className="text-2xl font-bold mb-4">Inbox</h1>
-      {chats.map(chat => (
-        <Link key={chat.chat_id} to={`/chat/${chat.chat_id}`}>
-          <div className="p-4 border-b hover:bg-gray-100">
-            <div className="flex items-center gap-3">
-              <img
-                src={chat.profiles?.profile_picture || 'https://via.placeholder.com/40'}
-                className="w-10 h-10 rounded-full"
-              />
-              <div>
-                <div className="font-medium">{chat.profiles?.name || 'Unknown User'}</div>
-                <div className="text-sm text-gray-600">{chat.message}</div>
-              </div>
+    <>
+      <Navbar />
+      <div className="max-w-2xl mx-auto mt-10 bg-white shadow-md rounded-2xl overflow-hidden">
+        <div className="p-4 border-b">
+          <h1 className="text-xl font-bold">Pesan</h1>
+        </div>
+
+        <div className="divide-y">
+          {chats.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">
+              Tidak ada pesan
             </div>
-          </div>
-        </Link>
-      ))}
-    </div>
+          ) : (
+            chats.map(chat => (
+              <div 
+                key={chat.chat_id}
+                className="flex items-center p-4 hover:bg-gray-50 cursor-pointer"
+                onClick={() => navigate(`/chat/${chat.chat_id}`)}
+              >
+                <img
+                  src={chat.otherUser.profile_picture || 'https://via.placeholder.com/150'}
+                  alt={chat.otherUser.name}
+                  className="w-12 h-12 rounded-full object-cover mr-3"
+                />
+                <div className="flex-1">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold">{chat.otherUser.name}</h3>
+                    <span className="text-xs text-gray-500">
+                      {formatDate(chat.lastMessageTime)}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 truncate">
+                    {chat.sender_id === currentUserId && 'Anda: '}
+                    {chat.lastMessage}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </>
   );
 };
 
