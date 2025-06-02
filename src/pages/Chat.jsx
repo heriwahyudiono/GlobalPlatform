@@ -30,7 +30,7 @@ const Chat = () => {
     const fetchMessagesAndReceiver = async () => {
       setLoading(true);
 
-      // Ambil semua pesan dalam chat ini
+      // Get all messages in this chat
       const { data: messagesData, error: messagesError } = await supabase
         .from("chats")
         .select("*")
@@ -45,14 +45,14 @@ const Chat = () => {
 
       setMessages(messagesData);
 
-      // Tentukan siapa receiver-nya
+      // Determine the receiver
       if (messagesData.length > 0) {
         const receiverId = 
           messagesData[0].sender_id === currentUserId 
             ? messagesData[0].receiver_id 
             : messagesData[0].sender_id;
 
-        // Ambil profil receiver
+        // Get receiver's profile
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("name, profile_picture")
@@ -71,7 +71,7 @@ const Chat = () => {
 
     fetchMessagesAndReceiver();
 
-    // Setup realtime subscription untuk pesan baru
+    // Setup realtime subscription for new messages
     const subscription = supabase
       .channel(`chat:${chat_id}`)
       .on(
@@ -96,7 +96,7 @@ const Chat = () => {
   const handleSendMessage = async () => {
     if (inputMessage.trim() === "" || !currentUserId || !chat_id) return;
 
-    // Tentukan receiver_id dari pesan pertama
+    // Determine receiver_id from the first message
     let receiverId = null;
     if (messages.length > 0) {
       receiverId = 
@@ -104,7 +104,7 @@ const Chat = () => {
           ? messages[0].receiver_id 
           : messages[0].sender_id;
     } else {
-      console.error("Tidak dapat menentukan penerima pesan");
+      console.error("Cannot determine message recipient");
       return;
     }
 
@@ -128,74 +128,80 @@ const Chat = () => {
     setInputMessage(prev => prev + emojiData.emoji);
   };
 
-  if (loading) return <div className="text-center py-10">Memuat pesan...</div>;
-
   return (
     <>
       <Navbar />
       <div className="max-w-2xl mx-auto mt-10 bg-white shadow-md rounded-2xl p-6">
-        {receiverProfile && (
-          <div className="flex items-center mb-6 pb-4 border-b">
-            <img
-              src={receiverProfile.profile_picture || 'https://via.placeholder.com/150'}
-              alt="Profile"
-              className="w-12 h-12 rounded-full object-cover mr-3"
-            />
-            <h2 className="text-xl font-semibold">{receiverProfile.name}</h2>
+        {loading ? (
+          <div className="flex justify-center items-center h-96">
+            <div className="text-center py-10">Memuat pesan...</div>
           </div>
-        )}
-
-        <div className="h-96 overflow-y-auto mb-4 space-y-3">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${msg.sender_id === currentUserId ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                  msg.sender_id === currentUserId
-                    ? 'bg-blue-500 text-white rounded-br-none'
-                    : 'bg-gray-200 text-gray-800 rounded-bl-none'
-                }`}
-              >
-                <p>{msg.message}</p>
-                <p className="text-xs opacity-70 mt-1">
-                  {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </p>
+        ) : (
+          <>
+            {receiverProfile && (
+              <div className="flex items-center mb-6 pb-4 border-b">
+                <img
+                  src={receiverProfile.profile_picture || 'https://via.placeholder.com/150'}
+                  alt="Profile"
+                  className="w-12 h-12 rounded-full object-cover mr-3"
+                />
+                <h2 className="text-xl font-semibold">{receiverProfile.name}</h2>
               </div>
-            </div>
-          ))}
-        </div>
+            )}
 
-        <div className="flex gap-2 relative">
-          <button
-            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300"
-          >
-            😊
-          </button>
-          
-          {showEmojiPicker && (
-            <div className="absolute bottom-12 left-0 z-10">
-              <EmojiPicker onEmojiClick={onEmojiClick} width={300} height={350} />
+            <div className="h-96 overflow-y-auto mb-4 space-y-3">
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.sender_id === currentUserId ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                      msg.sender_id === currentUserId
+                        ? 'bg-blue-500 text-white rounded-br-none'
+                        : 'bg-gray-200 text-gray-800 rounded-bl-none'
+                    }`}
+                  >
+                    <p>{msg.message}</p>
+                    <p className="text-xs opacity-70 mt-1">
+                      {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-          
-          <input
-            type="text"
-            placeholder="Tulis pesan..."
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-            className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={handleSendMessage}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Kirim
-          </button>
-        </div>
+
+            <div className="flex gap-2 relative">
+              <button
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300"
+              >
+                😊
+              </button>
+              
+              {showEmojiPicker && (
+                <div className="absolute bottom-12 left-0 z-10">
+                  <EmojiPicker onEmojiClick={onEmojiClick} width={300} height={350} />
+                </div>
+              )}
+              
+              <input
+                type="text"
+                placeholder="Tulis pesan..."
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={handleSendMessage}
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              >
+                Kirim
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </>
   );
