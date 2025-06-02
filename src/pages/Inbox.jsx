@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
+import { FiUsers } from 'react-icons/fi'; // Import the users icon
 
 const Inbox = () => {
   const [chats, setChats] = useState([]);
@@ -168,8 +169,15 @@ const Inbox = () => {
     <>
       <Navbar />
       <div className="max-w-2xl mx-auto mt-10 bg-white shadow-md rounded-2xl overflow-hidden">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b flex justify-between items-center">
           <h1 className="text-xl font-bold">Pesan</h1>
+          <button 
+            onClick={() => navigate('/users')}
+            className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
+            aria-label="Lihat Pengguna"
+          >
+            <FiUsers className="w-5 h-5" />
+          </button>
         </div>
 
         {loading ? (
@@ -183,7 +191,7 @@ const Inbox = () => {
             {chats.length === 0 ? (
               <div className="flex justify-center items-center h-64">
                 <div className="text-center text-gray-500">
-                  <p>Tidak ada pesan</p>
+                  <p>Belum ada pesan</p>
                 </div>
               </div>
             ) : (
