@@ -110,10 +110,29 @@ const Profile = () => {
   const handleSendMessage = async () => {
     if (!currentUserId || !receiverId) return;
 
-    // Generate chat_id menggunakan UUID v4
+    // Cek apakah sudah ada chat antara kedua user
+    const { data: existingChats, error: fetchError } = await supabase
+      .from('chats')
+      .select('chat_id')
+      .or(
+        `and(sender_id.eq.${currentUserId},receiver_id.eq.${receiverId}),and(sender_id.eq.${receiverId},receiver_id.eq.${currentUserId})`
+      )
+      .limit(1);
+
+    if (fetchError) {
+      console.error('Error fetching existing chats:', fetchError);
+      return;
+    }
+
+    // Jika chat sudah ada, gunakan chat_id yang sudah ada
+    if (existingChats && existingChats.length > 0) {
+      navigate(`/chat/${existingChats[0].chat_id}`);
+      return;
+    }
+
+    // Jika belum ada, buat chat baru
     const chatId = uuidv4();
 
-    // Buat chat baru dengan chat_id yang baru dibuat
     const { error } = await supabase.from('chats').insert({
       chat_id: chatId,
       sender_id: currentUserId,
@@ -126,7 +145,6 @@ const Profile = () => {
       return;
     }
 
-    // Arahkan ke halaman chat dengan chat_id yang baru dibuat
     navigate(`/chat/${chatId}`);
   };
 

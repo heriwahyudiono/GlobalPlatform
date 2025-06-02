@@ -9,7 +9,7 @@ const useQuery = () => {
   return new URLSearchParams(useLocation().search);
 };
 
-const Search = () => {
+const SearchResults = () => {
   const query = useQuery();
   const keyword = query.get('keyword') || '';
   const [products, setProducts] = useState([]);
@@ -197,4 +197,4 @@ const Search = () => {
   );
 };
 
-export default Search;
+export default SearchResults;

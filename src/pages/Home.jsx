@@ -7,7 +7,7 @@ import Navbar from '../components/Navbar';
 import { supabase } from '../supabaseClient';
 import { useUser } from '../UserContext';
 
-const Products = () => {
+const Home = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -25,7 +25,7 @@ const Products = () => {
 
       try {
         const { data: userData, error: userError } = await supabase
-          .from('users')
+          .from('profiles')
           .select('name')
           .eq('id', session.user.id)
           .maybeSingle();
@@ -34,8 +34,6 @@ const Products = () => {
         
         if (userData) {
           setUserName(userData.name);
-        } else {
-          console.warn('Data user tidak ditemukan, tetapi session valid');
         }
       } catch (err) {
         console.error('Error fetching user data:', err);
@@ -114,6 +112,48 @@ const Products = () => {
     }
   };
 
+  const handleViewProduct = async (product) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const viewerId = session?.user?.id;
+
+    if (!viewerId) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const { data: owner, error: ownerError } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .eq('id', product.user_id)
+        .maybeSingle();
+
+      if (ownerError) throw ownerError;
+
+      if (owner && owner.id !== viewerId) {
+        const { data: viewer, error: viewerError } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', viewerId)
+          .maybeSingle();
+
+        if (viewerError) throw viewerError;
+
+        await supabase
+          .from('notifications')
+          .insert({
+            user_id: owner.id,
+            product_id: product.id,
+            notif: `${viewer.name} melihat produk Anda.`,
+          });
+      }
+    } catch (err) {
+      console.error('Gagal mengirim notifikasi:', err);
+    }
+
+    navigate(`/product/${product.id}`);
+  };
+
   if (loading) {
     return (
       <>
@@ -151,9 +191,8 @@ const Products = () => {
                 key={product.id}
                 className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
               >
-                {/* Klik bagian ini untuk buka detail */}
                 <div
-                  onClick={() => navigate(`/product/${product.id}`)}
+                  onClick={() => handleViewProduct(product)}
                   className="cursor-pointer"
                 >
                   <div className="h-48 overflow-hidden">
@@ -221,4 +260,4 @@ const Products = () => {
   );
 };
 
-export default Products;
+export default Home;

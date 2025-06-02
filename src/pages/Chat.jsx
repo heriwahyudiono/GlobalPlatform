@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import Navbar from "../components/Navbar";
+import EmojiPicker from "emoji-picker-react";
 
 const Chat = () => {
   const { chat_id } = useParams();
@@ -10,6 +11,7 @@ const Chat = () => {
   const [currentUserId, setCurrentUserId] = useState(null);
   const [receiverProfile, setReceiverProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   useEffect(() => {
     const fetchCurrentUser = async () => {
@@ -119,6 +121,11 @@ const Chat = () => {
     }
 
     setInputMessage("");
+    setShowEmojiPicker(false);
+  };
+
+  const onEmojiClick = (emojiData) => {
+    setInputMessage(prev => prev + emojiData.emoji);
   };
 
   if (loading) return <div className="text-center py-10">Memuat pesan...</div>;
@@ -160,7 +167,20 @@ const Chat = () => {
           ))}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 relative">
+          <button
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="bg-gray-200 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-300"
+          >
+            😊
+          </button>
+          
+          {showEmojiPicker && (
+            <div className="absolute bottom-12 left-0 z-10">
+              <EmojiPicker onEmojiClick={onEmojiClick} width={300} height={350} />
+            </div>
+          )}
+          
           <input
             type="text"
             placeholder="Tulis pesan..."
