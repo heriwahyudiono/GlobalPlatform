@@ -74,39 +74,43 @@ const Notifications = () => {
   return (
     <>
       <Navbar />
-      <div className="max-w-2xl mx-auto p-4 pt-20">
-        <div className="bg-white rounded-lg shadow-sm">
-          <div className="p-4">
-            <h1 className="text-xl font-semibold text-gray-800">Notifications</h1>
+      <div className="max-w-3xl mx-auto p-4 pt-20">
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h1 className="text-2xl font-bold text-gray-800">Notifications</h1>
           </div>
           
           <div>
             {loading ? (
-              <div className="p-4 text-center text-gray-500">
+              <div className="p-6 text-center text-gray-500 text-lg">
                 Loading notifications...
               </div>
             ) : notifications.length === 0 ? (
-              <div className="p-4 text-center text-gray-500">
+              <div className="p-6 text-center text-gray-500 text-lg">
                 No notifications yet
               </div>
             ) : (
-              notifications.map((notification) => (
-                <div 
-                  key={notification.id} 
-                  className="p-4 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex justify-between items-start">
-                    <p className="text-gray-800">{notification.notif}</p>
-                    <span className="text-xs text-gray-400 ml-4 whitespace-nowrap">
-                      {new Date(notification.created_at).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        day: 'numeric',
-                        month: 'short'
-                      })}
-                    </span>
+              notifications.map((notification, index) => (
+                <React.Fragment key={notification.id}>
+                  <div 
+                    className="p-5 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="flex justify-between items-start">
+                      <p className="text-gray-800 text-lg">{notification.notif}</p>
+                      <span className="text-sm text-gray-500 ml-4 whitespace-nowrap">
+                        {new Date(notification.created_at).toLocaleTimeString([], {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          day: 'numeric',
+                          month: 'short'
+                        })}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                  {index < notifications.length - 1 && (
+                    <div className="border-t border-gray-100 mx-5"></div>
+                  )}
+                </React.Fragment>
               ))
             )}
           </div>
