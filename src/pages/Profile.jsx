@@ -148,103 +148,106 @@ const Profile = () => {
     navigate(`/chat/${chatId}`);
   };
 
-  if (loading) return <div className="text-center py-10">Memuat profil...</div>;
-  if (error) return <div className="text-center text-red-500 py-10">{error}</div>;
-
   return (
     <>
       <Navbar />
-      <div className="max-w-2xl mx-auto mt-10 bg-white shadow-md rounded-2xl p-6">
-        <div className="flex flex-col items-center text-center">
-          <img
-            src={
-              imageFile
-                ? URL.createObjectURL(imageFile)
-                : profile.profile_picture || 'https://via.placeholder.com/150'
-            }
-            alt="Profile"
-            className="w-32 h-32 rounded-full object-cover border-4 border-green-500"
-          />
+      {loading ? (
+        <div className="text-center py-10">Memuat profil...</div>
+      ) : error ? (
+        <div className="text-center text-red-500 py-10">{error}</div>
+      ) : (
+        <div className="max-w-2xl mx-auto mt-10 bg-white shadow-md rounded-2xl p-6">
+          <div className="flex flex-col items-center text-center">
+            <img
+              src={
+                imageFile
+                  ? URL.createObjectURL(imageFile)
+                  : profile.profile_picture || 'https://via.placeholder.com/150'
+              }
+              alt="Profile"
+              className="w-32 h-32 rounded-full object-cover border-4 border-green-500"
+            />
 
-          {editing && currentUserId === receiverId ? (
-            <div className="w-full mt-4 space-y-4">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="w-full border p-2 rounded-lg"
-              />
-              <input
-                type="text"
-                name="name"
-                value={profile.name}
-                onChange={handleChange}
-                placeholder="Nama"
-                className="w-full border p-2 rounded-lg"
-              />
-              <input
-                type="email"
-                name="email"
-                value={profile.email}
-                onChange={handleChange}
-                placeholder="Email"
-                className="w-full border p-2 rounded-lg"
-              />
-              <select
-                name="gender"
-                value={profile.gender}
-                onChange={handleChange}
-                className="w-full border p-2 rounded-lg"
-              >
-                <option value="">Jenis Kelamin</option>
-                <option value="male">Laki-laki</option>
-                <option value="female">Perempuan</option>
-              </select>
+            {editing && currentUserId === receiverId ? (
+              <div className="w-full mt-4 space-y-4">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="w-full border p-2 rounded-lg"
+                />
+                <input
+                  type="text"
+                  name="name"
+                  value={profile.name}
+                  onChange={handleChange}
+                  placeholder="Nama"
+                  className="w-full border p-2 rounded-lg"
+                />
+                <input
+                  type="email"
+                  name="email"
+                  value={profile.email}
+                  onChange={handleChange}
+                  placeholder="Email"
+                  className="w-full border p-2 rounded-lg"
+                />
+                <select
+                  name="gender"
+                  value={profile.gender}
+                  onChange={handleChange}
+                  className="w-full border p-2 rounded-lg"
+                >
+                  <option value="">Jenis Kelamin</option>
+                  <option value="male">Laki-laki</option>
+                  <option value="female">Perempuan</option>
+                </select>
 
-              <div className="flex gap-4 justify-center mt-4">
-                <button
-                  onClick={handleUpdate}
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-                >
-                  Simpan
-                </button>
-                <button
-                  onClick={() => {
-                    setEditing(false);
-                    setImageFile(null);
-                  }}
-                  className="bg-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400"
-                >
-                  Batal
-                </button>
+                <div className="flex gap-4 justify-center mt-4">
+                  <button
+                    onClick={handleUpdate}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                  >
+                    Simpan
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditing(false);
+                      setImageFile(null);
+                    }}
+                    className="bg-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400"
+                  >
+                    Batal
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <>
-              <h2 className="mt-4 text-2xl font-bold text-gray-800">
-                {profile.name || 'Tidak diketahui'}
-              </h2>
-              <p className="text-gray-600">{profile.email}</p>
+            ) : (
+              <>
+                <h2 className="mt-4 text-2xl font-bold text-gray-800">
+                  {profile.name || 'Tidak diketahui'}
+                </h2>
+                <p className="text-gray-600">{profile.email}</p>
 
-              {currentUserId === receiverId ? (
-                <button
-                  onClick={() => setEditing(true)}
-                  className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-                >
-                  Edit Profil
-                </button>
-              ) : (
-                <button
-                  onClick={handleSendMessage}
-                  className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-                >
-                  Kirim Pesan
-                </button>
-              )}
-            </>
-          )}
+                {currentUserId === receiverId ? (
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="mt-4 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                  >
+                    Edit Profil
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleSendMessage}
+                    className="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                  >
+                    Kirim Pesan
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 };
