@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
 import { v4 as uuidv4 } from 'uuid';
+import { EllipsisVerticalIcon } from '@heroicons/react/24/solid';
 
 const Profile = () => {
   const { id: receiverId } = useParams();
@@ -21,6 +22,7 @@ const Profile = () => {
   const [imageFile, setImageFile] = useState(null);
   const [currentUserId, setCurrentUserId] = useState(null);
   const [isUpgradingToStore, setIsUpgradingToStore] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -187,6 +189,27 @@ const Profile = () => {
     }
 
     navigate(`/chat/${chatId}`);
+  };
+
+  const toggleDropdown = (productId) => {
+    setActiveDropdown(activeDropdown === productId ? null : productId);
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    if (window.confirm('Are you sure you want to delete this product?')) {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+      
+      if (error) {
+        console.error('Delete error:', error);
+        alert('Failed to delete product');
+      } else {
+        setProducts(products.filter(product => product.id !== productId));
+      }
+    }
+    setActiveDropdown(null);
   };
 
   return (
@@ -356,7 +379,40 @@ const Profile = () => {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map((product) => (
-                  <div key={product.id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                  <div key={product.id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow relative">
+                    {/* Three-dot menu for edit/delete */}
+                    {currentUserId === receiverId && (
+                      <div className="absolute top-2 right-2 z-10">
+                        <button 
+                          onClick={() => toggleDropdown(product.id)}
+                          className="p-1 rounded-full bg-white bg-opacity-80 hover:bg-gray-200"
+                        >
+                          <EllipsisVerticalIcon className="h-5 w-5 text-gray-600" />
+                        </button>
+                        
+                        {/* Dropdown menu */}
+                        {activeDropdown === product.id && (
+                          <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg py-1 z-20">
+                            <button
+                              onClick={() => {
+                                navigate(`/edit-product/${product.id}`);
+                                setActiveDropdown(null);
+                              }}
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
                     <img
                       src={product.product_image || 'https://via.placeholder.com/300'}
                       alt={product.product_name}

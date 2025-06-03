@@ -15,6 +15,7 @@ import Chat from './pages/Chat';
 import Notifications from './pages/Notifications';
 import ProductDetail from './pages/ProductDetail';
 import Users from './pages/Users';
+import EditProduct from './pages/EditProduct';
 
 const App = () => {
   const { setUserName } = useUser();
@@ -56,6 +57,7 @@ const App = () => {
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/users" element={<Users />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/edit-product/:id" element={<EditProduct />} />
         </Routes>
       </BrowserRouter>
     </>

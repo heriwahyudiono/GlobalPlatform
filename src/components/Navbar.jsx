@@ -45,26 +45,48 @@ const Navbar = () => {
   return (
     <nav className="bg-white p-4 shadow-md">
       <div className="container mx-auto flex items-center justify-between">
-        <div className="flex flex-col flex-shrink-0">
+        {/* Logo - Hidden on small screens */}
+        <div className="hidden md:flex flex-col flex-shrink-0">
           <Link to="/home" className="text-green-600 font-bold text-2xl">
             GlobalMarket
           </Link>
         </div>
 
-        <div className="flex-grow mx-4 relative max-w-xl">
-          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="w-5 h-5 text-gray-400" />
-          </span>
-          <input
-            type="text"
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            onKeyDown={handleSearch}
-            placeholder="Cari produk..."
-            className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-400 transition"
-          />
+        {/* Search bar - Full width on small screens, normal on larger */}
+        <div className="flex-grow mx-0 md:mx-4 relative max-w-x">
+          <div className="flex items-center">
+            {/* Search icon - only shown when search input is collapsed */}
+            <button 
+              className="md:hidden mr-2 text-gray-600"
+              onClick={() => {
+                const searchInput = document.querySelector('.search-input');
+                if (searchInput) {
+                  searchInput.classList.toggle('hidden');
+                  searchInput.focus();
+                }
+              }}
+            >
+              {/* <Search className="w-5 h-5" /> */}
+            </button>
+
+            {/* Search input - always visible on medium screens up */}
+            <div className="relative w-full mx-4">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="w-5 h-5 text-gray-400" />
+              </span>
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={(e) => setSearchKeyword(e.target.value)}
+                onKeyDown={handleSearch}
+                placeholder="Cari produk..."
+                className="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-400 transition"
+              />
+            </div>
+          </div>
         </div>
 
+        {/* Navigation icons */}
         <div className="flex items-center space-x-4 flex-shrink-0">
           <Link to="/inbox" className="text-gray-600 hover:text-green-600">
             <Mail className="w-6 h-6" />
@@ -87,7 +109,7 @@ const Navbar = () => {
                     {userName.charAt(0).toUpperCase()}
                   </span>
                 </div>
-                <span className="text-sm text-gray-700 font-medium">Hi, {userName}</span>
+                <span className="hidden sm:inline text-sm text-gray-700 font-medium">Hi, {userName}</span>
               </div>
 
               {dropdownOpen && (
