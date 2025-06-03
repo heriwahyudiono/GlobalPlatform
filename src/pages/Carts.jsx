@@ -34,15 +34,26 @@ const Carts = () => {
               product_name,
               price,
               description,
-              product_image
+              product_images (product_image)
             )
           `)
           .eq('user_id', session.user.id);
 
         if (error) throw error;
 
-        setCartItems(data || []);
-        setSelectedItems([]); // Kosongkan pilihan saat load ulang
+        // Format data untuk mengambil gambar pertama dari product_images
+        const formattedData = data.map(item => ({
+          ...item,
+          products: {
+            ...item.products,
+            product_image: item.products.product_images && item.products.product_images.length > 0 
+              ? item.products.product_images[0].product_image 
+              : 'https://via.placeholder.com/300'
+          }
+        }));
+
+        setCartItems(formattedData || []);
+        setSelectedItems([]);
         setLoading(false);
       } catch (err) {
         setError(err.message);

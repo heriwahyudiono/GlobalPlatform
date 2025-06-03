@@ -12,6 +12,7 @@ const EditProduct = () => {
     price: '',
     product_image: ''
   });
+  const [imageId, setImageId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [imageFile, setImageFile] = useState(null);
@@ -23,16 +24,24 @@ const EditProduct = () => {
       setLoading(true);
       setError('');
 
-      // Get logged in user
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUserId(user.id);
       }
 
-      // Get product data
       const { data: productData, error: productError } = await supabase
         .from('products')
-        .select('id, product_name, description, price, product_image, user_id')
+        .select(`
+          id,
+          product_name,
+          description,
+          price,
+          user_id,
+          product_images (
+            id,
+            product_image
+          )
+        `)
         .eq('id', productId)
         .single();
 
@@ -40,12 +49,17 @@ const EditProduct = () => {
         setError('Failed to load product.');
         console.error('Fetch product error:', productError);
       } else {
-        // Check if current user is the owner of the product
         if (user && productData.user_id !== user.id) {
           setError('You are not authorized to edit this product.');
           navigate('/home');
         } else {
-          setProduct(productData);
+          setProduct({
+            product_name: productData.product_name,
+            description: productData.description,
+            price: productData.price,
+            product_image: productData.product_images?.product_image || ''
+          });
+          setImageId(productData.product_images?.id || null);
         }
       }
 
@@ -70,11 +84,10 @@ const EditProduct = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     let imageUrl = product.product_image;
 
     if (imageFile) {
-      // Upload new image
       const fileExt = imageFile.name.split('.').pop();
       const fileName = `${productId}.${fileExt}`;
       const filePath = `products/${fileName}`;
@@ -97,14 +110,30 @@ const EditProduct = () => {
         .getPublicUrl(filePath);
 
       imageUrl = publicUrlData.publicUrl;
+
+      // Update or insert into product_images
+      if (imageId) {
+        await supabase
+          .from('product_images')
+          .update({ product_image: imageUrl, updated_at: new Date().toISOString() })
+          .eq('id', imageId);
+      } else {
+        const { data, error } = await supabase
+          .from('product_images')
+          .insert({ product_id: productId, product_image: imageUrl });
+
+        if (!error) {
+          setImageId(data[0].id);
+        }
+      }
     }
 
-    // Update product in database
     const { error } = await supabase
       .from('products')
-      .update({ 
-        ...product, 
-        product_image: imageUrl,
+      .update({
+        product_name: product.product_name,
+        description: product.description,
+        price: product.price,
         updated_at: new Date().toISOString()
       })
       .eq('id', productId);
@@ -119,14 +148,11 @@ const EditProduct = () => {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this product?')) {
-      return;
-    }
-
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
     setIsDeleting(true);
-    
+
     try {
-      // Delete product from database
+      // Delete product
       const { error } = await supabase
         .from('products')
         .delete()
@@ -134,7 +160,7 @@ const EditProduct = () => {
 
       if (error) throw error;
 
-      // Delete product image from storage if it exists
+      // Delete product image from storage if exists
       if (product.product_image) {
         const imagePath = product.product_image.split('/').pop();
         await supabase.storage

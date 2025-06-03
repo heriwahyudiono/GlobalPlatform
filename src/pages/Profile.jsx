@@ -50,10 +50,16 @@ const Profile = () => {
         setProfile(profileData);
       }
 
-      // Get user's products
+      // Get user's products with their images
       const { data: productsData, error: productsError } = await supabase
         .from('products')
-        .select('id, product_name, description, price, product_image')
+        .select(`
+          id, 
+          product_name, 
+          description, 
+          price,
+          product_images (product_image)
+        `)
         .eq('user_id', receiverId);
 
       if (productsError) {
@@ -197,13 +203,26 @@ const Profile = () => {
 
   const handleDeleteProduct = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      const { error } = await supabase
+      // First delete the product images
+      const { error: deleteImagesError } = await supabase
+        .from('product_images')
+        .delete()
+        .eq('product_id', productId);
+      
+      if (deleteImagesError) {
+        console.error('Delete images error:', deleteImagesError);
+        alert('Failed to delete product images');
+        return;
+      }
+
+      // Then delete the product
+      const { error: deleteProductError } = await supabase
         .from('products')
         .delete()
         .eq('id', productId);
       
-      if (error) {
-        console.error('Delete error:', error);
+      if (deleteProductError) {
+        console.error('Delete product error:', deleteProductError);
         alert('Failed to delete product');
       } else {
         setProducts(products.filter(product => product.id !== productId));
@@ -414,7 +433,11 @@ const Profile = () => {
                     )}
                     
                     <img
-                      src={product.product_image || 'https://via.placeholder.com/300'}
+                      src={
+                        product.product_images && product.product_images.length > 0 
+                          ? product.product_images[0].product_image 
+                          : 'https://via.placeholder.com/300'
+                      }
                       alt={product.product_name}
                       className="w-full h-48 object-cover cursor-pointer"
                       onClick={() => navigate(`/product/${product.id}`)}
