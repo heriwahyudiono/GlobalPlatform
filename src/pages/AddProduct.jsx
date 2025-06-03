@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
+import Navbar from '../components/Navbar'; 
 
 const AddProduct = () => {
   const [productName, setProductName] = useState('');
@@ -92,56 +93,90 @@ const AddProduct = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto">
-      <h2 className="text-2xl font-semibold mb-4">Add Product</h2>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar /> {/* Add the Navbar component here */}
+      
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden p-6">
+          <h2 className="text-2xl font-semibold mb-6 text-gray-800">Add Product</h2>
 
-      {error && <p className="text-red-500 mb-4">{error}</p>}
-      {message && <p className="text-green-500 mb-4">{message}</p>}
+          {error && <p className="text-red-500 mb-4 p-2 bg-red-50 rounded">{error}</p>}
+          {message && <p className="text-green-500 mb-4 p-2 bg-green-50 rounded">{message}</p>}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="product_name" className="block text-sm font-medium text-gray-700">Product Name</label>
-          <input
-            type="text"
-            id="product_name"
-            value={productName}
-            onChange={(e) => setProductName(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded"
-            required
-          />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label htmlFor="product_name" className="block text-sm font-medium text-gray-700 mb-1">Product Name</label>
+              <input
+                type="text"
+                id="product_name"
+                value={productName}
+                onChange={(e) => setProductName(e.target.value)}
+                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="price" className="block text-sm font-medium text-gray-700 mb-1">Price</label>
+              <div className="relative">
+                <span className="absolute left-3 top-3 text-gray-500">Rp</span>
+                <input
+                  type="number"
+                  id="price"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="w-full pl-10 p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows="4"
+                className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                required
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">Product Image</label>
+              <div className="mt-1 flex items-center">
+                <label className="cursor-pointer bg-white rounded-md border border-gray-300 p-2 w-full">
+                  <span className="text-sm text-gray-600">{imageFile ? imageFile.name : 'Choose an image...'}</span>
+                  <input
+                    type="file"
+                    id="image"
+                    accept="image/*"
+                    onChange={(e) => setImageFile(e.target.files[0])}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              {imageFile && (
+                <div className="mt-2">
+                  <img 
+                    src={URL.createObjectURL(imageFile)} 
+                    alt="Preview" 
+                    className="h-32 object-contain rounded-md"
+                  />
+                </div>
+              )}
+            </div>
+            
+            <button 
+              type="submit" 
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-4 rounded-md transition duration-300 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            >
+              Add Product
+            </button>
+          </form>
         </div>
-        <div>
-          <label htmlFor="price" className="block text-sm font-medium text-gray-700">Price</label>
-          <input
-            type="number"
-            id="price"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
-          <textarea
-            id="description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full p-2 border border-gray-300 rounded"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="image" className="block text-sm font-medium text-gray-700">Product Image</label>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => setImageFile(e.target.files[0])}
-            className="w-full"
-          />
-        </div>
-        <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded">Add Product</button>
-      </form>
+      </div>
     </div>
   );
 };
