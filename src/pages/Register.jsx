@@ -33,6 +33,7 @@ const Register = () => {
             id: data.user.id,   // ID dari Supabase Auth
             name,               // Nama yang diinput pengguna
             email,              // Simpan juga email ke profiles
+            role: 'user'        // Set default role sebagai 'user'
           },
         ]);
 
