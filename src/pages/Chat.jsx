@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../supabaseClient";
 import Navbar from "../components/Navbar";
 import EmojiPicker from "emoji-picker-react";
 
 const Chat = () => {
   const { chat_id } = useParams();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
   const [currentUserId, setCurrentUserId] = useState(null);
@@ -55,7 +56,7 @@ const Chat = () => {
         // Get receiver's profile
         const { data: profileData, error: profileError } = await supabase
           .from("profiles")
-          .select("name, profile_picture")
+          .select("name, profile_picture, id")
           .eq("id", receiverId)
           .single();
 
@@ -128,10 +129,16 @@ const Chat = () => {
     setInputMessage(prev => prev + emojiData.emoji);
   };
 
+  const handleProfileClick = () => {
+    if (receiverProfile) {
+      navigate(`/profile/${receiverProfile.id}`);
+    }
+  };
+
   return (
     <>
       <Navbar />
-      <div className="max-w-2xl mx-auto mt-10 bg-white shadow-md rounded-2xl p-6">
+      <div className="max-w-2xl mx-auto mt-10 bg-white shadow-md rounded-2xl p-4 sm:p-6">
         {loading ? (
           <div className="flex justify-center items-center h-96">
             <div className="text-center py-10">Memuat pesan...</div>
@@ -139,7 +146,10 @@ const Chat = () => {
         ) : (
           <>
             {receiverProfile && (
-              <div className="flex items-center mb-6 pb-4 border-b">
+              <div 
+                className="flex items-center mb-6 pb-4 border-b cursor-pointer"
+                onClick={handleProfileClick}
+              >
                 <img
                   src={receiverProfile.profile_picture || 'https://via.placeholder.com/150'}
                   alt="Profile"
@@ -185,20 +195,22 @@ const Chat = () => {
                 </div>
               )}
               
-              <input
-                type="text"
-                placeholder="Tulis pesan..."
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={handleSendMessage}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-              >
-                Kirim
-              </button>
+              <div className="flex-1 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Tulis pesan..."
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 whitespace-nowrap"
+                >
+                  Kirim
+                </button>
+              </div>
             </div>
           </>
         )}
