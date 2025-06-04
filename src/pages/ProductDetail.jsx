@@ -9,6 +9,7 @@ const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [product, setProduct] = useState(null);
+  const [productImages, setProductImages] = useState([]);
   const [owner, setOwner] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,16 +20,20 @@ const ProductDetail = () => {
       setError(null);
 
       try {
-        // Fetch product data
+        // Fetch product data with images
         const { data: productData, error: productError } = await supabase
           .from('products')
-          .select('*')
+          .select(`
+            *,
+            product_images (id, product_image)
+          `)
           .eq('id', id)
           .single();
 
         if (productError) throw productError;
 
         setProduct(productData);
+        setProductImages(productData.product_images || []);
 
         // Fetch owner profile data
         if (productData && productData.user_id) {
@@ -124,6 +129,9 @@ const ProductDetail = () => {
   const discount = 10;
   const discountPrice = (product.price * (1 - discount / 100)).toFixed(2);
   const rating = product.rating || 4;
+  const mainImage = productImages.length > 0 
+    ? productImages[0].product_image 
+    : '/default-product.png';
 
   return (
     <>
@@ -138,16 +146,35 @@ const ProductDetail = () => {
         <div className="container mx-auto px-4 py-6 max-w-2xl">
           <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow p-4">
             <div className="flex flex-col md:flex-row gap-4">
-              <div className="md:w-1/2 flex justify-center items-center">
-                <img
-                  src={product.product_image || '/default-product.png'}
-                  alt={product.product_name}
-                  className="w-full max-w-xs object-contain rounded"
-                />
+              <div className="md:w-1/2">
+                {/* Main product image */}
+                <div className="flex justify-center items-center mb-4">
+                  <img
+                    src={mainImage}
+                    alt={product.product_name}
+                    className="w-full max-w-xs h-64 object-contain rounded"
+                  />
+                </div>
+                
+                {/* Product image thumbnails */}
+                {productImages.length > 1 && (
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {productImages.map((image) => (
+                      <img
+                        key={image.id}
+                        src={image.product_image}
+                        alt={`${product.product_name} - ${image.id}`}
+                        className="w-16 h-16 object-cover rounded border cursor-pointer hover:border-green-500"
+                        onClick={() => setProductImages([image, ...productImages.filter(img => img.id !== image.id)])}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
+              
               <div className="md:w-1/2 flex flex-col">
                 <h1 className="text-2xl font-bold mb-3">{product.product_name}</h1>
-                <p className="text-gray-600 mb-2 text-sm line-clamp-3">{product.description}</p>
+                <p className="text-gray-600 mb-2 text-sm">{product.description}</p>
 
                 <div className="flex items-center mb-3">
                   {Array.from({ length: 5 }, (_, index) => (
@@ -195,7 +222,7 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Bagian pemilik produk dipindahkan ke bawah */}
+            {/* Product owner section */}
             {owner && (
               <div className="mt-6 pt-4 border-t border-gray-200">
                 <Link

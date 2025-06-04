@@ -45,13 +45,22 @@ const Home = () => {
 
   const fetchProducts = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: productsData, error: productsError } = await supabase
         .from('products')
-        .select('*');
+        .select(`
+          id, 
+          user_id,
+          product_name, 
+          description, 
+          price,
+          created_at,
+          product_images (id, product_image)
+        `)
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (productsError) throw productsError;
       
-      setProducts(data || []);
+      setProducts(productsData || []);
       setLoading(false);
     } catch (err) {
       setError(err.message);
@@ -185,6 +194,9 @@ const Home = () => {
             const discount = 10;
             const discountPrice = (product.price * (1 - discount / 100)).toFixed(2);
             const rating = product.rating || 4;
+            const mainImage = product.product_images && product.product_images.length > 0 
+              ? product.product_images[0].product_image 
+              : 'https://via.placeholder.com/300';
 
             return (
               <div
@@ -197,9 +209,9 @@ const Home = () => {
                 >
                   <div className="h-48 overflow-hidden">
                     <img
-                      src={product.product_image}
+                      src={mainImage}
                       alt={product.product_name}
-                      className="w-full h-full object-contain p-4"
+                      className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="p-4">
