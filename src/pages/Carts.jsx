@@ -153,7 +153,7 @@ const Carts = () => {
   return (
     <>
       <Navbar />
-      <div className="container mx-auto px-4 py-8 mt-20">
+      <div className="container mx-auto px-4 py-8 mt-20 max-w-4xl">
         <h1 className="text-2xl font-bold text-center mb-8">Keranjang Belanja</h1>
         {cartItems.length === 0 ? (
           <p className="text-center text-gray-600">Keranjang kamu masih kosong.</p>
@@ -178,52 +178,63 @@ const Carts = () => {
                 return (
                   <div
                     key={item.id}
-                    className="flex items-center gap-4 bg-white rounded-lg shadow p-4"
+                    className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-white rounded-lg shadow p-4"
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedItems.includes(item.id)}
-                      onChange={() => handleSelectItem(item.id)}
-                      className="w-5 h-5"
-                    />
-                    <img
-                      src={product.product_image}
-                      alt={product.product_name}
-                      className="w-24 h-24 object-contain rounded"
-                    />
-                    <div className="flex-1">
-                      <h2 className="text-lg font-semibold">{product.product_name}</h2>
-                      <p className="text-gray-600 text-sm">{product.description}</p>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <span className="text-green-600 font-bold text-lg">Rp{discountPrice}</span>
-                        <span className="text-sm text-gray-400 line-through">Rp{product.price}</span>
-                        <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">
-                          {discount}% OFF
-                        </span>
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.includes(item.id)}
+                        onChange={() => handleSelectItem(item.id)}
+                        className="w-5 h-5"
+                      />
+                      <img
+                        src={product.product_image}
+                        alt={product.product_name}
+                        className="w-16 h-16 sm:w-24 sm:h-24 object-contain rounded"
+                      />
+                    </div>
+                    
+                    <div className="flex-1 w-full">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h2 className="text-lg font-semibold line-clamp-1">{product.product_name}</h2>
+                          <p className="text-gray-600 text-sm line-clamp-2">{product.description}</p>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveFromCart(item.id)}
+                          className="p-1 sm:p-2 border border-red-500 text-red-600 rounded-lg hover:bg-red-50 transition ml-2"
+                          title="Hapus dari keranjang"
+                        >
+                          <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                        </button>
                       </div>
-                      <div className="flex items-center mt-2 gap-2">
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                          className="px-2 py-1 bg-gray-200 rounded"
-                        >
-                          −
-                        </button>
-                        <span>{item.quantity}</span>
-                        <button
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="px-2 py-1 bg-gray-200 rounded"
-                        >
-                          +
-                        </button>
+                      
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-2 gap-2">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-green-600 font-bold text-base sm:text-lg">Rp{discountPrice}</span>
+                          <span className="text-xs sm:text-sm text-gray-400 line-through">Rp{product.price}</span>
+                          <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full">
+                            {discount}% OFF
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            className="px-2 py-1 bg-gray-200 rounded text-sm sm:text-base"
+                          >
+                            −
+                          </button>
+                          <span className="text-sm sm:text-base">{item.quantity}</span>
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            className="px-2 py-1 bg-gray-200 rounded text-sm sm:text-base"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleRemoveFromCart(item.id)}
-                      className="p-2 border border-red-500 text-red-600 rounded-lg hover:bg-red-50 transition"
-                      title="Hapus dari keranjang"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
                   </div>
                 );
               })}
@@ -234,13 +245,21 @@ const Carts = () => {
 
       {/* Tombol Checkout Fixed */}
       {cartItems.length > 0 && (
-        <div className="fixed bottom-0 right-0 p-4 w-full sm:w-auto bg-white border-t shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-8 sm:rounded-tl-lg">
-          <span className="text-lg font-semibold">
-            Total: <span className="text-green-600">Rp{getTotalSelectedPrice()}</span>
-          </span>
+        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-8">
+          <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
+            <input
+              type="checkbox"
+              checked={selectAll}
+              onChange={handleSelectAll}
+              className="w-4 h-4 sm:w-5 sm:h-5"
+            />
+            <span className="text-sm sm:text-base font-semibold">
+              Total: <span className="text-green-600">Rp{getTotalSelectedPrice()}</span>
+            </span>
+          </div>
           <button
             onClick={handleCheckout}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg text-lg font-semibold disabled:opacity-50"
+            className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-lg text-sm sm:text-base font-semibold disabled:opacity-50"
             disabled={selectedItems.length === 0}
           >
             Checkout ({selectedItems.length})

@@ -9,7 +9,7 @@ const slides = [
   },
   {
     id: 2,
-    title: "Kalau mau hubungi saya",
+    title: "Deadline Blender",
     description: "Chat aja di sini!",
   },
   {
