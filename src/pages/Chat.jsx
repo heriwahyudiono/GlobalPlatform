@@ -67,6 +67,24 @@ const Chat = () => {
         }
       }
 
+      // Mark all unread messages as read
+      const unreadMessages = messagesData.filter(
+        msg => msg.receiver_id === currentUserId && !msg.is_read
+      );
+
+      if (unreadMessages.length > 0) {
+        const messageIds = unreadMessages.map(msg => msg.id);
+        
+        const { error: updateError } = await supabase
+          .from("chats")
+          .update({ is_read: true })
+          .in("id", messageIds);
+
+        if (updateError) {
+          console.error("Error updating message status:", updateError);
+        }
+      }
+
       setLoading(false);
     };
 
@@ -83,8 +101,20 @@ const Chat = () => {
           table: "chats",
           filter: `chat_id=eq.${chat_id}`
         },
-        (payload) => {
+        async (payload) => {
           setMessages((prev) => [...prev, payload.new]);
+          
+          // If the new message is for the current user, mark it as read immediately
+          if (payload.new.receiver_id === currentUserId) {
+            const { error } = await supabase
+              .from("chats")
+              .update({ is_read: true })
+              .eq("id", payload.new.id);
+            
+            if (error) {
+              console.error("Error updating new message status:", error);
+            }
+          }
         }
       )
       .subscribe();
@@ -114,6 +144,7 @@ const Chat = () => {
       sender_id: currentUserId,
       receiver_id: receiverId,
       message: inputMessage,
+      is_read: false // New messages are initially unread
     });
 
     if (error) {
@@ -175,6 +206,9 @@ const Chat = () => {
                     <p>{msg.message}</p>
                     <p className="text-xs opacity-70 mt-1">
                       {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {msg.sender_id !== currentUserId && !msg.is_read && (
+                        <span className="ml-1 text-blue-500">•</span>
+                      )}
                     </p>
                   </div>
                 </div>

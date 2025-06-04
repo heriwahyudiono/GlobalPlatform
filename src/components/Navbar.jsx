@@ -11,8 +11,10 @@ const Navbar = () => {
   const dropdownRef = useRef(null);
   const [searchKeyword, setSearchKeyword] = useState('');
   const navigate = useNavigate();
+  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  // Ambil ID user saat login
+  // Fetch user ID on component mount
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -24,7 +26,52 @@ const Navbar = () => {
     fetchUser();
   }, []);
 
-  // Tutup dropdown jika klik di luar
+  // Check for unread messages
+  useEffect(() => {
+    if (!userId) return;
+
+    const checkUnreadMessages = async () => {
+      const { count, error } = await supabase
+        .from('chats')
+        .select('*', { count: 'exact' })
+        .eq('receiver_id', userId)
+        .eq('is_read', false);
+
+      if (error) {
+        console.error('Error checking unread messages:', error);
+        return;
+      }
+
+      setHasUnreadMessages(count > 0);
+      setUnreadCount(count);
+    };
+
+    // Initial check
+    checkUnreadMessages();
+
+    // Realtime subscription
+    const subscription = supabase
+      .channel('unread_messages')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chats',
+          filter: `receiver_id=eq.${userId}`
+        },
+        () => {
+          checkUnreadMessages(); // Refresh when any change happens to user's messages
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [userId]);
+
+  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -43,7 +90,7 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white p-4 shadow-md">
+    <nav className="bg-white p-4 shadow-md sticky top-0 z-50">
       <div className="container mx-auto flex items-center justify-between">
         {/* Logo - Hidden on small screens */}
         <div className="hidden md:flex flex-col flex-shrink-0">
@@ -52,24 +99,9 @@ const Navbar = () => {
           </Link>
         </div>
 
-        {/* Search bar - Full width on small screens, normal on larger */}
-        <div className="flex-grow mx-0 md:mx-4 relative max-w-x">
+        {/* Search bar */}
+        <div className="flex-grow mx-0 md:mx-4 relative max-w-xl">
           <div className="flex items-center">
-            {/* Search icon - only shown when search input is collapsed */}
-            <button 
-              className="md:hidden mr-2 text-gray-600"
-              onClick={() => {
-                const searchInput = document.querySelector('.search-input');
-                if (searchInput) {
-                  searchInput.classList.toggle('hidden');
-                  searchInput.focus();
-                }
-              }}
-            >
-              {/* <Search className="w-5 h-5" /> */}
-            </button>
-
-            {/* Search input - always visible on medium screens up */}
             <div className="relative w-full mx-4">
               <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <Search className="w-5 h-5 text-gray-400" />
@@ -88,12 +120,20 @@ const Navbar = () => {
 
         {/* Navigation icons */}
         <div className="flex items-center space-x-4 flex-shrink-0">
-          <Link to="/inbox" className="text-gray-600 hover:text-green-600">
+          {/* Messages with notification badge */}
+          <Link to="/inbox" className="text-gray-600 hover:text-green-600 relative">
             <Mail className="w-6 h-6" />
+            {hasUnreadMessages && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </Link>
+
           <Link to="/notifications" className="text-gray-600 hover:text-green-600">
             <Bell className="w-6 h-6" />
           </Link>
+          
           <Link to="/carts" className="text-gray-600 hover:text-green-600">
             <ShoppingCart className="w-6 h-6" />
           </Link>
@@ -113,7 +153,7 @@ const Navbar = () => {
               </div>
 
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-white border rounded-md shadow-lg z-50">
+                <div className="absolute right-0 mt-2 w-48 bg-white border rounded-md shadow-lg z-50">
                   {userId && (
                     <Link
                       to={`/profile/${userId}`}
