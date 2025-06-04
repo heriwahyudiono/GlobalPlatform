@@ -4,18 +4,18 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 const slides = [
   {
     id: 1,
-    title: "Belanja Hemat, Barang Berkualitas!",
-    description: "Diskon hingga 70% hanya minggu ini!",
+    title: "Kalau mau hubungi saya",
+    description: "Chat aja di sini!",
   },
   {
     id: 2,
-    title: "Temukan Produk Favoritmu!",
-    description: "Ribuan produk pilihan tersedia untukmu.",
+    title: "Kalau mau hubungi saya",
+    description: "Chat aja di sini!",
   },
   {
     id: 3,
-    title: "Pengiriman Cepat & Aman",
-    description: "Belanja nyaman dari rumah tanpa khawatir.",
+    title: "Kalau mau hubungi saya",
+    description: "Chat aja di sini!",
   },
 ];
 
