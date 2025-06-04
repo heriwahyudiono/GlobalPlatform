@@ -13,9 +13,13 @@ const ProductDetail = () => {
   const [owner, setOwner] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [userProfile, setUserProfile] = useState(null);
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
 
   useEffect(() => {
-    const fetchProductAndOwner = async () => {
+    const fetchData = async () => {
       setLoading(true);
       setError(null);
 
@@ -36,28 +40,99 @@ const ProductDetail = () => {
         setProductImages(productData.product_images || []);
 
         // Fetch owner profile data
-        if (productData && productData.user_id) {
+        if (productData?.user_id) {
           const { data: ownerData, error: ownerError } = await supabase
             .from('profiles')
-            .select('name, profile_picture')
+            .select('id, name, profile_picture')
             .eq('id', productData.user_id)
             .single();
 
           if (ownerError) throw ownerError;
-
           setOwner(ownerData);
+        }
+
+        // Fetch comments with user profiles
+        await fetchComments();
+        
+        // Fetch current user profile if logged in
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.id) {
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('id, name, profile_picture')
+            .eq('id', session.user.id)
+            .single();
+            
+          if (!profileError) setUserProfile(profileData);
         }
       } catch (err) {
         setError('Produk tidak ditemukan.');
-        setProduct(null);
-        setOwner(null);
+        console.error('Error fetching data:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProductAndOwner();
+    fetchData();
   }, [id]);
+
+  const fetchComments = async () => {
+    try {
+      const { data: commentsData, error: commentsError } = await supabase
+        .from('comments')
+        .select(`
+          id,
+          comment,
+          created_at,
+          user_id,
+          profiles:user_id (id, name, profile_picture)
+        `)
+        .eq('product_id', id)
+        .order('created_at', { ascending: false });
+
+      if (commentsError) throw commentsError;
+      setComments(commentsData || []);
+    } catch (err) {
+      console.error('Error fetching comments:', err);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      navigate('/login');
+      return;
+    }
+    
+    setIsSubmittingComment(true);
+    
+    try {
+      const { data, error } = await supabase
+        .from('comments')
+        .insert([
+          {
+            user_id: session.user.id,
+            product_id: id,
+            comment: newComment.trim()
+          }
+        ])
+        .select();
+        
+      if (error) throw error;
+      
+      // Refresh comments after successful submission
+      await fetchComments();
+      setNewComment('');
+    } catch (err) {
+      console.error('Error adding comment:', err);
+      alert('Gagal menambahkan komentar: ' + err.message);
+    } finally {
+      setIsSubmittingComment(false);
+    }
+  };
 
   const handleAddToCart = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -226,8 +301,8 @@ const ProductDetail = () => {
             {owner && (
               <div className="mt-6 pt-4 border-t border-gray-200">
                 <Link
-                  to={`/profile/${product.user_id}`}
-                  className="flex items-center space-x-2 p-2 rounded-lg w-fit"
+                  to={`/profile/${owner.id}`}
+                  className="flex items-center space-x-2 p-2 rounded-lg w-fit hover:bg-gray-50"
                 >
                   <img
                     src={owner.profile_picture || '/default-profile.png'}
@@ -238,6 +313,71 @@ const ProductDetail = () => {
                 </Link>
               </div>
             )}
+
+            {/* Comments section */}
+            <div className="mt-8 pt-6 border-t border-gray-200">
+              <h2 className="text-lg font-semibold mb-4">Komentar ({comments.length})</h2>
+              
+              {/* Add comment form */}
+              <div className="mb-6">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Tulis komentar Anda tentang produk ini..."
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  rows="3"
+                />
+                <button
+                  onClick={handleAddComment}
+                  disabled={!newComment.trim() || isSubmittingComment}
+                  className="mt-2 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed"
+                >
+                  {isSubmittingComment ? 'Mengirim...' : 'Kirim Komentar'}
+                </button>
+              </div>
+              
+              {/* Comments list */}
+              {comments.length === 0 ? (
+                <p className="text-gray-500 text-center py-4">Belum ada komentar</p>
+              ) : (
+                <div className="space-y-4">
+                  {comments.map((comment) => (
+                    <div key={comment.id} className="flex gap-3">
+                      <Link 
+                        to={`/profile/${comment.user_id}`}
+                        className="flex-shrink-0 hover:opacity-80 transition"
+                      >
+                        <img
+                          src={comment.profiles?.profile_picture || '/default-profile.png'}
+                          alt={comment.profiles?.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      </Link>
+                      <div className="flex-1">
+                        <div className="bg-gray-50 p-3 rounded-lg">
+                          <Link 
+                            to={`/profile/${comment.user_id}`}
+                            className="font-medium text-sm hover:text-green-600"
+                          >
+                            {comment.profiles?.name || 'Pengguna'}
+                          </Link>
+                          <p className="text-gray-700 mt-1 text-sm">{comment.comment}</p>
+                        </div>
+                        <span className="text-xs text-gray-500 mt-1 block">
+                          {new Date(comment.created_at).toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
