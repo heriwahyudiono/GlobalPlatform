@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, MoreVertical, Trash2 } from 'lucide-react';
 import { FaStar, FaRegStar } from 'react-icons/fa';
 import Carousel from '../components/Carousel';
 import Navbar from '../components/Navbar';
@@ -11,7 +11,8 @@ const Home = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { user, setUserName } = useUser();
+  const [showMenu, setShowMenu] = useState(null);
+  const { userName, setUserName, userRole, setUserRole } = useUser();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,7 +27,7 @@ const Home = () => {
       try {
         const { data: userData, error: userError } = await supabase
           .from('profiles')
-          .select('name')
+          .select('name, role')
           .eq('id', session.user.id)
           .maybeSingle();
 
@@ -34,6 +35,7 @@ const Home = () => {
         
         if (userData) {
           setUserName(userData.name);
+          setUserRole(userData.role);
         }
       } catch (err) {
         console.error('Error fetching user data:', err);
@@ -41,7 +43,7 @@ const Home = () => {
     };
 
     checkAuth();
-  }, [navigate, setUserName]);
+  }, [navigate, setUserName, setUserRole]);
 
   const fetchProducts = async () => {
     try {
@@ -163,6 +165,35 @@ const Home = () => {
     navigate(`/product/${product.id}`);
   };
 
+  const handleDeleteProduct = async (productId) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
+    
+    try {
+      // First delete product images
+      const { error: deleteImagesError } = await supabase
+        .from('product_images')
+        .delete()
+        .eq('product_id', productId);
+
+      if (deleteImagesError) throw deleteImagesError;
+
+      // Then delete the product
+      const { error: deleteProductError } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productId);
+
+      if (deleteProductError) throw deleteProductError;
+
+      // Refresh the product list
+      fetchProducts();
+      setShowMenu(null);
+    } catch (err) {
+      console.error('Error deleting product:', err);
+      alert('Failed to delete product: ' + err.message);
+    }
+  };
+
   if (loading) {
     return (
       <>
@@ -201,8 +232,37 @@ const Home = () => {
             return (
               <div
                 key={product.id}
-                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow"
+                className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative"
               >
+                {userRole === 'admin' && (
+                  <div className="absolute top-2 right-2 z-10">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowMenu(showMenu === product.id ? null : product.id);
+                      }}
+                      className="p-1 rounded-full bg-white bg-opacity-70 hover:bg-gray-100"
+                    >
+                      <MoreVertical className="w-5 h-5 text-gray-600" />
+                    </button>
+                    
+                    {showMenu === product.id && (
+                      <div className="absolute right-0 mt-1 w-40 bg-white rounded-md shadow-lg py-1 z-20">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteProduct(product.id);
+                          }}
+                          className="flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full text-left"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div
                   onClick={() => handleViewProduct(product)}
                   className="cursor-pointer"
@@ -256,7 +316,10 @@ const Home = () => {
                       Beli Sekarang
                     </button>
                     <button 
-                      onClick={() => handleAddToCart(product.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToCart(product.id);
+                      }}
                       className="p-2 border border-green-500 text-green-600 rounded-lg hover:bg-green-50 transition"
                     >
                       <ShoppingCart className="w-5 h-5" />
