@@ -56,7 +56,7 @@ const AddProduct = () => {
         const filePath = `product-images/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
-          .from('product-images')
+          .from('images')
           .upload(filePath, imageFile);
 
         if (uploadError) {
@@ -65,7 +65,7 @@ const AddProduct = () => {
         }
 
         const { data: urlData } = supabase.storage
-          .from('product-images')
+          .from('images')
           .getPublicUrl(filePath);
 
         const imageUrl = urlData.publicUrl;

@@ -36,7 +36,7 @@ const Profile = () => {
         setCurrentUserId(user.id);
       }
 
-      // Get profile data based on parameter id
+      // Get profile data
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('name, email, profile_picture, gender, role, store_name')
@@ -50,7 +50,7 @@ const Profile = () => {
         setProfile(profileData);
       }
 
-      // Get user's products with their images
+      // Get user's products
       const { data: productsData, error: productsError } = await supabase
         .from('products')
         .select(`
@@ -93,10 +93,11 @@ const Profile = () => {
     if (imageFile) {
       const fileExt = imageFile.name.split('.').pop();
       const fileName = `${currentUserId}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+      const filePath = `profile-pictures/${fileName}`;
 
+      // Upload image to new bucket and folder structure
       const { error: uploadError } = await supabase.storage
-        .from('profile-pictures')
+        .from('images')
         .upload(filePath, imageFile, {
           cacheControl: '3600',
           upsert: true,
@@ -108,13 +109,15 @@ const Profile = () => {
         return;
       }
 
-      const { data: publicUrlData } = supabase.storage
-        .from('profile-pictures')
+      // Get public URL
+      const { data: { publicUrl } } = await supabase.storage
+        .from('images')
         .getPublicUrl(filePath);
 
-      imageUrl = publicUrlData.publicUrl;
+      imageUrl = publicUrl;
     }
 
+    // Update profile in database
     const { error } = await supabase
       .from('profiles')
       .update({ ...profile, profile_picture: imageUrl })
@@ -159,7 +162,7 @@ const Profile = () => {
   const handleSendMessage = async () => {
     if (!currentUserId || !receiverId) return;
 
-    // Check if chat already exists between these users
+    // Check if chat already exists
     const { data: existingChats, error: fetchError } = await supabase
       .from('chats')
       .select('chat_id')
@@ -173,15 +176,13 @@ const Profile = () => {
       return;
     }
 
-    // If chat exists, use existing chat_id
     if (existingChats && existingChats.length > 0) {
       navigate(`/chat/${existingChats[0].chat_id}`);
       return;
     }
 
-    // If not, create new chat
+    // Create new chat
     const chatId = uuidv4();
-
     const { error } = await supabase.from('chats').insert({
       chat_id: chatId,
       sender_id: currentUserId,
@@ -204,7 +205,7 @@ const Profile = () => {
   const handleDeleteProduct = async (productId) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
       try {
-        // First, get all images associated with this product
+        // Get all images associated with this product
         const { data: productImages, error: fetchImagesError } = await supabase
           .from('product_images')
           .select('id, product_image')
@@ -215,20 +216,19 @@ const Profile = () => {
         // Delete each image from storage
         if (productImages && productImages.length > 0) {
           const imagePaths = productImages.map(img => {
-            // Extract the file path from the URL
             const url = new URL(img.product_image);
-            return url.pathname.split('/storage/v1/object/public/product-images/')[1];
+            return url.pathname.split('/storage/v1/object/public/images/')[1];
           });
 
           const { error: deleteStorageError } = await supabase
             .storage
-            .from('product-images')
+            .from('images')
             .remove(imagePaths);
 
           if (deleteStorageError) throw deleteStorageError;
         }
 
-        // Then delete the product images from database
+        // Delete product images from database
         const { error: deleteImagesError } = await supabase
           .from('product_images')
           .delete()
@@ -236,7 +236,7 @@ const Profile = () => {
         
         if (deleteImagesError) throw deleteImagesError;
 
-        // Finally delete the product itself
+        // Delete product
         const { error: deleteProductError } = await supabase
           .from('products')
           .delete()
@@ -378,7 +378,6 @@ const Profile = () => {
               </>
             )}
 
-            {/* Upgrade to store form */}
             {isUpgradingToStore && (
               <div className="max-w-md mx-auto mt-6 p-4 border rounded-lg bg-gray-50">
                 <h3 className="text-lg font-semibold mb-2">Upgrade to Store Account</h3>
@@ -423,7 +422,6 @@ const Profile = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map((product) => (
                   <div key={product.id} className="border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow relative">
-                    {/* Three-dot menu for edit/delete */}
                     {currentUserId === receiverId && (
                       <div className="absolute top-2 right-2 z-10">
                         <button 
@@ -433,7 +431,6 @@ const Profile = () => {
                           <EllipsisVerticalIcon className="h-5 w-5 text-gray-600" />
                         </button>
                         
-                        {/* Dropdown menu */}
                         {activeDropdown === product.id && (
                           <div className="absolute right-0 mt-2 w-40 bg-white rounded-md shadow-lg py-1 z-20">
                             <button
