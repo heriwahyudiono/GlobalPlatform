@@ -15,7 +15,6 @@ const Register = () => {
     setErrorMessage('');
 
     try {
-      // Registrasi user ke Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -26,14 +25,14 @@ const Register = () => {
         return;
       }
 
-      // Jika user berhasil dibuat, simpan data ke tabel profiles
       if (data?.user) {
+        // Simpan ke tabel profiles
         const { error: insertError } = await supabase.from('profiles').insert([
           {
-            id: data.user.id,   // ID dari Supabase Auth
-            name,               // Nama yang diinput pengguna
-            email,              // Simpan juga email ke profiles
-            role: 'user'        // Set default role sebagai 'user'
+            id: data.user.id,
+            name,
+            email,
+            role: 'user'
           },
         ]);
 
@@ -42,10 +41,17 @@ const Register = () => {
           return;
         }
 
+        // Jika butuh verifikasi email
+        if (!data.session) {
+          setErrorMessage(`Kami telah mengirimkan tautan ke ${email} untuk verifikasi akun Anda.`);
+          return;
+        }
+
+        // Jika tidak perlu verifikasi email
         navigate('/home');
       }
     } catch (err) {
-      setErrorMessage('Unexpected error occurred. Please try again later.');
+      setErrorMessage('Terjadi kesalahan. Silakan coba lagi nanti.');
       console.error('Register error:', err);
     }
   };
@@ -134,9 +140,11 @@ const Register = () => {
               </button>
             </form>
 
-            {/* Tampilkan error jika ada */}
+            {/* Tampilkan pesan jika ada */}
             {errorMessage && (
-              <p className="text-red-500 text-sm mt-4 text-center">{errorMessage}</p>
+              <p className={`${errorMessage.includes('verifikasi') ? 'text-green-600' : 'text-red-500'} text-sm mt-4 text-center`}>
+                {errorMessage}
+              </p>
             )}
 
             {/* Link ke login */}
