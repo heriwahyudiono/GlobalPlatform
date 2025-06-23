@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Search, Bell, Mail } from 'lucide-react';
+import { ShoppingCart, Search } from 'lucide-react';
 import { useUser } from '../UserContext';
 import { supabase } from '../supabaseClient';
 
@@ -11,10 +11,8 @@ const Navbar = () => {
   const dropdownRef = useRef(null);
   const [searchKeyword, setSearchKeyword] = useState('');
   const navigate = useNavigate();
-  const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
 
-  // Fetch user ID on component mount
+  // Ambil user ID saat komponen dimuat
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -26,52 +24,7 @@ const Navbar = () => {
     fetchUser();
   }, []);
 
-  // Check for unread messages
-  useEffect(() => {
-    if (!userId) return;
-
-    const checkUnreadMessages = async () => {
-      const { count, error } = await supabase
-        .from('chats')
-        .select('*', { count: 'exact' })
-        .eq('receiver_id', userId)
-        .eq('is_read', false);
-
-      if (error) {
-        console.error('Error checking unread messages:', error);
-        return;
-      }
-
-      setHasUnreadMessages(count > 0);
-      setUnreadCount(count);
-    };
-
-    // Initial check
-    checkUnreadMessages();
-
-    // Realtime subscription
-    const subscription = supabase
-      .channel('unread_messages')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'chats',
-          filter: `receiver_id=eq.${userId}`
-        },
-        () => {
-          checkUnreadMessages(); // Refresh when any change happens to user's messages
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(subscription);
-    };
-  }, [userId]);
-
-  // Close dropdown when clicking outside
+  // Tutup dropdown saat klik di luar
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -120,20 +73,7 @@ const Navbar = () => {
 
         {/* Navigation icons */}
         <div className="flex items-center space-x-4 flex-shrink-0">
-          {/* Messages with notification badge */}
-          <Link to="/inbox" className="text-gray-600 hover:text-green-600 relative">
-            <Mail className="w-6 h-6" />
-            {hasUnreadMessages && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
-          </Link>
 
-          <Link to="/notifications" className="text-gray-600 hover:text-green-600">
-            <Bell className="w-6 h-6" />
-          </Link>
-          
           <Link to="/carts" className="text-gray-600 hover:text-green-600">
             <ShoppingCart className="w-6 h-6" />
           </Link>

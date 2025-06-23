@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import Navbar from '../components/Navbar';
+import BottomNav from '../components/BottomNav';
 import { FiUsers } from 'react-icons/fi'; // Import the users icon
 
 const Inbox = () => {
@@ -26,7 +26,7 @@ const Inbox = () => {
 
     const fetchChats = async () => {
       setLoading(true);
-      
+
       // Get all chats involving current user
       const { data: chatsData, error: chatsError } = await supabase
         .from('chats')
@@ -49,7 +49,7 @@ const Inbox = () => {
       });
 
       // Get profiles of all users chatted with
-      const chatUsers = Object.values(uniqueChats).map(chat => 
+      const chatUsers = Object.values(uniqueChats).map(chat =>
         chat.sender_id === currentUserId ? chat.receiver_id : chat.sender_id
       );
 
@@ -68,7 +68,7 @@ const Inbox = () => {
       const enrichedChats = Object.values(uniqueChats).map(chat => {
         const otherUserId = chat.sender_id === currentUserId ? chat.receiver_id : chat.sender_id;
         const profile = profilesData.find(p => p.id === otherUserId);
-        
+
         return {
           ...chat,
           otherUser: profile || { name: 'Unknown', profile_picture: '' },
@@ -99,22 +99,22 @@ const Inbox = () => {
           setChats(prev => {
             const existingChat = prev.find(c => c.chat_id === payload.new.chat_id);
             if (existingChat) {
-              return prev.map(c => 
-                c.chat_id === payload.new.chat_id 
-                  ? { 
-                      ...c, 
-                      lastMessage: payload.new.message,
-                      lastMessageTime: payload.new.created_at
-                    } 
+              return prev.map(c =>
+                c.chat_id === payload.new.chat_id
+                  ? {
+                    ...c,
+                    lastMessage: payload.new.message,
+                    lastMessageTime: payload.new.created_at
+                  }
                   : c
               ).sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
             } else {
               // If new chat, fetch user profile
               const fetchNewChatUser = async () => {
-                const otherUserId = payload.new.sender_id === currentUserId 
-                  ? payload.new.receiver_id 
+                const otherUserId = payload.new.sender_id === currentUserId
+                  ? payload.new.receiver_id
                   : payload.new.sender_id;
-                
+
                 const { data } = await supabase
                   .from('profiles')
                   .select('id, name, profile_picture')
@@ -167,11 +167,10 @@ const Inbox = () => {
 
   return (
     <>
-      <Navbar />
       <div className="max-w-2xl mx-auto mt-10 bg-white shadow-md rounded-2xl overflow-hidden">
         <div className="p-4 border-b flex justify-between items-center">
           <h1 className="text-xl font-bold">Pesan</h1>
-          <button 
+          <button
             onClick={() => navigate('/users')}
             className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-full"
             aria-label="Lihat Pengguna"
@@ -196,7 +195,7 @@ const Inbox = () => {
               </div>
             ) : (
               chats.map(chat => (
-                <div 
+                <div
                   key={chat.chat_id}
                   className="flex items-center p-4 hover:bg-gray-50 cursor-pointer"
                   onClick={() => navigate(`/chat/${chat.chat_id}`)}
@@ -223,6 +222,10 @@ const Inbox = () => {
             )}
           </div>
         )}
+      </div>
+
+      <div className="fixed bottom-0 w-full z-50">
+        <BottomNav />
       </div>
     </>
   );

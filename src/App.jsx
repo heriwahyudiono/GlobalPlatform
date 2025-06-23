@@ -3,12 +3,14 @@ import { useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { useUser } from './UserContext'; 
 import Home from './pages/Home';
+import PostDetail from './pages/PostDetail';
 import Shop from './pages/Shop';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import AddProduct from './pages/AddProduct';
+import AddPost from './pages/AddPost';
 import Carts from './pages/Carts';
 import SearchResults from './pages/SearchResults';
 import Inbox from './pages/Inbox';
@@ -51,7 +53,9 @@ const App = () => {
           <Route path="/profile/:id" element={<Profile />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/add-product" element={<AddProduct />} />
+          <Route path="/add-post" element={<AddPost />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/post/:id" element={<PostDetail />} />
           <Route path="/shop" element={<Shop />} />
           <Route path="/carts" element={<Carts />} />
           <Route path="/search" element={<SearchResults />} />

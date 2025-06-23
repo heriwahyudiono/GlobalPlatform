@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "../supabaseClient";
-import Navbar from "../components/Navbar";
+import BottomNav from '../components/BottomNav';
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
@@ -58,7 +58,7 @@ const Notifications = () => {
           if (payload.eventType === "INSERT") {
             setNotifications((prev) => [payload.new, ...prev]);
           } else if (payload.eventType === "DELETE") {
-            setNotifications((prev) => 
+            setNotifications((prev) =>
               prev.filter(notif => notif.id !== payload.old.id)
             );
           }
@@ -73,13 +73,12 @@ const Notifications = () => {
 
   return (
     <>
-      <Navbar />
       <div className="max-w-3xl mx-auto p-4 pt-20">
         <div className="bg-white rounded-lg shadow-md overflow-hidden">
           <div className="p-6 border-b border-gray-100">
             <h1 className="text-2xl font-bold text-gray-800">Notifications</h1>
           </div>
-          
+
           <div>
             {loading ? (
               <div className="p-6 text-center text-gray-500 text-lg">
@@ -92,7 +91,7 @@ const Notifications = () => {
             ) : (
               notifications.map((notification, index) => (
                 <React.Fragment key={notification.id}>
-                  <div 
+                  <div
                     className="p-5 hover:bg-gray-50 transition-colors"
                   >
                     <div className="flex justify-between items-start">
@@ -115,6 +114,10 @@ const Notifications = () => {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="fixed bottom-0 w-full z-50">
+        <BottomNav />
       </div>
     </>
   );

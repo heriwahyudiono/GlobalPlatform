@@ -31,6 +31,37 @@ FOR SELECT USING (
   (storage.foldername(name))[1] = 'profile-pictures'
 );
 
+-- INSERT: Hanya user terautentikasi bisa upload ke folder post-images
+CREATE POLICY "Allow upload to post images folder"
+ON storage.objects
+FOR INSERT TO authenticated
+WITH CHECK (
+  bucket_id = 'images' AND
+  (storage.foldername(name))[1] = 'post-images'
+);
+
+-- UPDATE: Hanya user terautentikasi bisa update file di folder post-images
+CREATE POLICY "Allow update in post images folder"
+ON storage.objects
+FOR UPDATE TO authenticated
+USING (
+  bucket_id = 'images' AND
+  (storage.foldername(name))[1] = 'post-images'
+)
+WITH CHECK (
+  bucket_id = 'images' AND
+  (storage.foldername(name))[1] = 'post-images'
+);
+
+-- SELECT: Siapa saja boleh melihat gambar postingan
+CREATE POLICY "Allow public read from post images"
+ON storage.objects
+FOR SELECT
+USING (
+  bucket_id = 'images' AND
+  (storage.foldername(name))[1] = 'post-images'
+);
+
 -- INSERT: Hanya user terautentikasi bisa upload ke folder product-images
 CREATE POLICY "Allow upload to product images folder"
 ON storage.objects
@@ -61,3 +92,4 @@ USING (
   bucket_id = 'images' AND
   (storage.foldername(name))[1] = 'product-images'
 );
+
