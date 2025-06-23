@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import { useUser } from './UserContext'; 
 import Home from './pages/Home';
+import Shop from './pages/Shop';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
@@ -51,6 +52,7 @@ const App = () => {
           <Route path="/settings" element={<Settings />} />
           <Route path="/add-product" element={<AddProduct />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/shop" element={<Shop />} />
           <Route path="/carts" element={<Carts />} />
           <Route path="/search" element={<SearchResults />} />
           <Route path="/inbox" element={<Inbox />} />

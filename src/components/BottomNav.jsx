@@ -1,5 +1,4 @@
-import React from 'react';
-import { Home, Users, MessageSquare, Bell, Store, Menu } from 'lucide-react';
+import { Home, Users, MessageSquare, Bell, ShoppingBag, Menu } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const BottomNav = () => {
@@ -7,12 +6,12 @@ const BottomNav = () => {
   const location = useLocation();
 
   const menuItems = [
-    { label: 'Home', icon: <Home size={20} />, path: '/' },
+    { label: 'Home', icon: <Home size={20} />, path: '/home' },
     { label: 'Friends', icon: <Users size={20} />, path: '/friends' },
     { label: 'Chats', icon: <MessageSquare size={20} />, path: '/inbox' },
     { label: 'Notifications', icon: <Bell size={20} />, path: '/notifications' },
-    { label: 'Store', icon: <Store size={20} />, path: '/store' },
-    { label: 'Menu', icon: <Menu size={20} />, path: '/menu' },
+    { label: 'Shop', icon: <ShoppingBag size={20} />, path: '/shop' },
+    { label: 'Menu', icon: <Menu size={20} />, path: '/' },
   ];
 
   return (

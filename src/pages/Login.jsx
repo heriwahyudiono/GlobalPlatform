@@ -36,7 +36,7 @@ function Login() {
 
       // Jika login sukses dan data user tersedia, arahkan ke halaman /home.
       if (data?.user) {
-        navigate('/home');
+        navigate('/shop');
       }
     } catch (err) {
       // Jika terjadi error tak terduga, tampilkan pesan umum.
