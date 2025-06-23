@@ -1,24 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Loader } from 'lucide-react'; // 🆕 Tambahkan Loader
+import { Trash2, Loader2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
-import { useUser } from '../UserContext';
 
 const Carts = () => {
   const [cartItems, setCartItems] = useState([]);
   const [selectedItems, setSelectedItems] = useState([]);
   const [selectAll, setSelectAll] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [checkoutLoading, setCheckoutLoading] = useState(false); // 🆕 Tambahkan state loading untuk checkout
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { user } = useUser();
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchCart = async () => {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session) return navigate('/login');
+      if (sessionError || !session) {
+        navigate('/login');
+        return;
+      }
 
       try {
         const { data, error } = await supabase
@@ -46,7 +47,7 @@ const Carts = () => {
           }
         }));
 
-        setCartItems(formattedData || []);
+        setCartItems(formattedData);
         setSelectedItems([]);
         setLoading(false);
       } catch (err) {
@@ -70,6 +71,7 @@ const Carts = () => {
     try {
       const { error } = await supabase.from('carts').delete().eq('id', cartId);
       if (error) throw error;
+
       setCartItems(prev => prev.filter(item => item.id !== cartId));
       setSelectedItems(prev => prev.filter(id => id !== cartId));
     } catch (err) {
@@ -80,10 +82,16 @@ const Carts = () => {
   const updateQuantity = async (cartId, newQuantity) => {
     if (newQuantity < 1) return;
     try {
-      const { error } = await supabase.from('carts').update({ quantity: newQuantity }).eq('id', cartId);
+      const { error } = await supabase
+        .from('carts')
+        .update({ quantity: newQuantity })
+        .eq('id', cartId);
       if (error) throw error;
+
       setCartItems(prev =>
-        prev.map(item => item.id === cartId ? { ...item, quantity: newQuantity } : item)
+        prev.map(item =>
+          item.id === cartId ? { ...item, quantity: newQuantity } : item
+        )
       );
     } catch (err) {
       alert('Gagal memperbarui jumlah: ' + err.message);
@@ -91,8 +99,10 @@ const Carts = () => {
   };
 
   const handleSelectItem = (cartId) => {
-    setSelectedItems(prev =>
-      prev.includes(cartId) ? prev.filter(id => id !== cartId) : [...prev, cartId]
+    setSelectedItems((prev) =>
+      prev.includes(cartId)
+        ? prev.filter(id => id !== cartId)
+        : [...prev, cartId]
     );
   };
 
@@ -111,15 +121,18 @@ const Carts = () => {
     return cartItems
       .filter(item => selectedItems.includes(item.id))
       .reduce((total, item) => {
-        const discountPrice = item.products.price * 0.9;
+        const discount = 10;
+        const discountPrice = item.products.price * (1 - discount / 100);
         return total + discountPrice * item.quantity;
       }, 0)
       .toFixed(2);
   };
 
   const handleCheckout = async () => {
-    setCheckoutLoading(true); // 🆕 Aktifkan loading
     const itemsToCheckout = cartItems.filter(item => selectedItems.includes(item.id));
+    if (itemsToCheckout.length === 0) return;
+
+    setCheckoutLoading(true);
 
     try {
       const { data: { user }, error } = await supabase.auth.getUser();
@@ -149,19 +162,58 @@ const Carts = () => {
       if (!result.token) throw new Error('Gagal mendapatkan token Midtrans');
 
       window.snap.pay(result.token, {
-        onSuccess: function (result) {
+        onSuccess: async (res) => {
+          const insertData = itemsToCheckout.map(item => ({
+            user_id: user.id,
+            order_id: res.order_id,
+            product_id: item.products.id,
+            quantity: item.quantity,
+            payment_type: res.payment_type,
+            transaction_status: res.transaction_status,
+            gross_amount: parseFloat(res.gross_amount),
+            payment_data: res
+          }));
+
+          await supabase.from('transactions').insert(insertData);
+
+          const selectedIds = itemsToCheckout.map(item => item.id);
+          await supabase.from('carts').delete().in('id', selectedIds);
+
+          setCartItems(prev => prev.filter(item => !selectedIds.includes(item.id)));
+          setSelectedItems([]);
           alert('Pembayaran berhasil!');
-          console.log('Success', result);
         },
-        onPending: function (result) {
+        onPending: async (res) => {
+          const insertData = itemsToCheckout.map(item => ({
+            user_id: user.id,
+            order_id: res.order_id,
+            product_id: item.products.id,
+            quantity: item.quantity,
+            payment_type: res.payment_type,
+            transaction_status: res.transaction_status,
+            gross_amount: parseFloat(res.gross_amount),
+            payment_data: res
+          }));
+
+          await supabase.from('transactions').insert(insertData);
           alert('Pembayaran menunggu konfirmasi.');
-          console.log('Pending', result);
         },
-        onError: function (result) {
-          alert('Pembayaran gagal!');
-          console.log('Error', result);
+        onError: async (res) => {
+          const insertData = itemsToCheckout.map(item => ({
+            user_id: user.id,
+            order_id: res.order_id,
+            product_id: item.products.id,
+            quantity: item.quantity,
+            payment_type: res.payment_type ?? null,
+            transaction_status: 'error',
+            gross_amount: parseFloat(res.gross_amount ?? 0),
+            payment_data: res
+          }));
+
+          await supabase.from('transactions').insert(insertData);
+          alert('Pembayaran gagal.');
         },
-        onClose: function () {
+        onClose: () => {
           console.log('User menutup popup pembayaran.');
         }
       });
@@ -169,18 +221,19 @@ const Carts = () => {
       console.log('Checkout gagal:', err.message);
       alert('Checkout gagal: ' + err.message);
     } finally {
-      setCheckoutLoading(false); // 🆕 Nonaktifkan loading
+      setCheckoutLoading(false);
     }
   };
 
-  if (loading) return (<><Navbar /><div className="text-center mt-10 text-xl">Memuat keranjang...</div></>);
-  if (error) return (<><Navbar /><div className="text-center mt-10 text-xl text-red-500">Error: {error}</div></>);
+  if (loading) return <><Navbar /><div className="text-center mt-10 text-xl">Memuat keranjang...</div></>;
+  if (error) return <><Navbar /><div className="text-center mt-10 text-xl text-red-500">Error: {error}</div></>;
 
   return (
     <>
       <Navbar />
       <div className="container mx-auto px-4 py-8 mt-20 max-w-4xl">
         <h1 className="text-2xl font-bold text-center mb-8">Keranjang Belanja</h1>
+
         {cartItems.length === 0 ? (
           <p className="text-center text-gray-600">Keranjang kamu masih kosong.</p>
         ) : (
@@ -199,8 +252,17 @@ const Carts = () => {
                 return (
                   <div key={item.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-white rounded-lg shadow p-4">
                     <div className="flex items-center gap-4 w-full sm:w-auto">
-                      <input type="checkbox" checked={selectedItems.includes(item.id)} onChange={() => handleSelectItem(item.id)} className="w-5 h-5" />
-                      <img src={product.product_image} alt={product.product_name} className="w-16 h-16 sm:w-24 sm:h-24 object-contain rounded" />
+                      <input
+                        type="checkbox"
+                        checked={selectedItems.includes(item.id)}
+                        onChange={() => handleSelectItem(item.id)}
+                        className="w-5 h-5"
+                      />
+                      <img
+                        src={product.product_image}
+                        alt={product.product_name}
+                        className="w-16 h-16 sm:w-24 sm:h-24 object-contain rounded"
+                      />
                     </div>
 
                     <div className="flex-1 w-full">
@@ -209,7 +271,11 @@ const Carts = () => {
                           <h2 className="text-lg font-semibold line-clamp-1">{product.product_name}</h2>
                           <p className="text-gray-600 text-sm line-clamp-2">{product.description}</p>
                         </div>
-                        <button onClick={() => handleRemoveFromCart(item.id)} className="p-1 sm:p-2 border border-red-500 text-red-600 rounded-lg hover:bg-red-50 transition ml-2" title="Hapus dari keranjang">
+                        <button
+                          onClick={() => handleRemoveFromCart(item.id)}
+                          className="p-1 sm:p-2 border border-red-500 text-red-600 rounded-lg hover:bg-red-50 transition ml-2"
+                          title="Hapus dari keranjang"
+                        >
                           <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
                         </button>
                       </div>
@@ -236,7 +302,6 @@ const Carts = () => {
         )}
       </div>
 
-      {/* Tombol Checkout */}
       {cartItems.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-8">
           <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
@@ -250,7 +315,7 @@ const Carts = () => {
             className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-lg text-sm sm:text-base font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
             disabled={selectedItems.length === 0 || checkoutLoading}
           >
-            {checkoutLoading && <Loader className="w-4 h-4 animate-spin" />}
+            {checkoutLoading && <Loader2 className="animate-spin w-4 h-4" />}
             Checkout ({selectedItems.length})
           </button>
         </div>

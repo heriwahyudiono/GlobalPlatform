@@ -17,6 +17,21 @@ const SearchResults = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  // Load Snap.js saat halaman dimuat
+  useEffect(() => {
+    const loadSnapScript = () => {
+      if (!document.getElementById('snap-script')) {
+        const script = document.createElement('script');
+        script.src = 'https://app.sandbox.midtrans.com/snap/snap.js';
+        script.setAttribute('data-client-key', 'SB-Mid-client-kSVkRneeAHCbWpuo');
+        script.id = 'snap-script';
+        script.async = true;
+        document.body.appendChild(script);
+      }
+    };
+    loadSnapScript();
+  }, []);
+
   useEffect(() => {
     if (!keyword.trim()) {
       setProducts([]);
@@ -54,27 +69,23 @@ const SearchResults = () => {
     }
 
     try {
-      const { data: existingCart, error: cartError } = await supabase
+      const { data: existingCart } = await supabase
         .from('carts')
         .select('*')
         .eq('user_id', session.user.id)
         .eq('product_id', productId)
         .maybeSingle();
 
-      if (cartError) throw cartError;
-
       if (existingCart) {
-        const { error: updateError } = await supabase
+        await supabase
           .from('carts')
           .update({
             quantity: existingCart.quantity + 1,
             updated_at: new Date().toISOString()
           })
           .eq('id', existingCart.id);
-
-        if (updateError) throw updateError;
       } else {
-        const { error: insertError } = await supabase
+        await supabase
           .from('carts')
           .insert({
             product_id: productId,
@@ -83,8 +94,6 @@ const SearchResults = () => {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           });
-
-        if (insertError) throw insertError;
       }
 
       alert('Produk berhasil ditambahkan ke keranjang');
@@ -94,8 +103,94 @@ const SearchResults = () => {
     }
   };
 
-  const handleBuyNow = () => {
-    alert('Fitur beli sekarang belum diimplementasikan.');
+  const handleBuyNow = async (product) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return navigate('/login');
+
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('name')
+        .eq('id', user.id)
+        .single();
+      if (profileError) throw new Error('Gagal mendapatkan profil');
+
+      const response = await fetch('http://localhost:5000/api/payments/create-transaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{
+            quantity: 1,
+            products: {
+              id: product.id,
+              product_name: product.product_name,
+              price: product.price
+            }
+          }],
+          user: {
+            name: profile.name,
+            email: user.email
+          }
+        })
+      });
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Response bukan JSON');
+      }
+
+      const result = await response.json();
+      if (!result.token) throw new Error('Token pembayaran tidak tersedia');
+
+      const waitSnap = () =>
+        new Promise((resolve) => {
+          const check = () => {
+            if (window.snap) resolve();
+            else setTimeout(check, 200);
+          };
+          check();
+        });
+      await waitSnap();
+
+      window.snap.pay(result.token, {
+        onSuccess: async (res) => {
+          await supabase.from('transactions').insert([{
+            user_id: user.id,
+            order_id: res.order_id,
+            product_id: product.id,
+            quantity: 1,
+            payment_type: res.payment_type,
+            transaction_status: res.transaction_status,
+            gross_amount: parseFloat(res.gross_amount),
+            payment_data: res
+          }]);
+          alert('Pembayaran berhasil!');
+        },
+        onPending: async (res) => {
+          await supabase.from('transactions').insert([{
+            user_id: user.id,
+            order_id: res.order_id,
+            product_id: product.id,
+            quantity: 1,
+            payment_type: res.payment_type,
+            transaction_status: res.transaction_status,
+            gross_amount: parseFloat(res.gross_amount),
+            payment_data: res
+          }]);
+          alert('Transaksi menunggu pembayaran.');
+        },
+        onError: (res) => {
+          alert('Transaksi gagal.');
+          console.error('Midtrans error:', res);
+        },
+        onClose: () => {
+          console.log('Transaksi dibatalkan oleh pengguna.');
+        }
+      });
+    } catch (err) {
+      console.error('Checkout gagal:', err.message);
+      alert('Checkout gagal: ' + err.message);
+    }
   };
 
   return (
@@ -174,7 +269,7 @@ const SearchResults = () => {
 
                   <div className="flex mt-4 gap-2">
                     <button
-                      onClick={handleBuyNow}
+                      onClick={() => handleBuyNow(product)}
                       className="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-lg transition"
                     >
                       Beli Sekarang

@@ -16,6 +16,7 @@ import Notifications from './pages/Notifications';
 import ProductDetail from './pages/ProductDetail';
 import Users from './pages/Users';
 import EditProduct from './pages/EditProduct';
+import TransactionHistory from './pages/TransactionHistory';
 
 const App = () => {
   const { setUserName } = useUser();
@@ -58,6 +59,7 @@ const App = () => {
           <Route path="/users" element={<Users />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/edit-product/:id" element={<EditProduct />} />
+          <Route path="/transactions" element={<TransactionHistory />} />
         </Routes>
       </BrowserRouter>
     </>

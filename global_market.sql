@@ -66,6 +66,21 @@ CREATE TABLE carts (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 
+CREATE TABLE transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+  order_id TEXT NOT NULL,
+  product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  quantity INTEGER NOT NULL DEFAULT 1,
+  payment_type TEXT,
+  transaction_status TEXT,
+  gross_amount DECIMAL(10,2),
+  transaction_time TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  payment_data JSONB
+);
+
+
+
 
 
 
