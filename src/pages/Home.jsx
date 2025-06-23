@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Share2 } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import BottomNav from '../components/BottomNav';
 import { supabase } from '../supabaseClient';
 import { useUser } from '../UserContext';

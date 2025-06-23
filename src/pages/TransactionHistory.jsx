@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
+import BottomNav from '../components/BottomNav';
 import {
   CheckCircle,
   Clock,
@@ -132,6 +133,10 @@ const TransactionHistory = () => {
             })}
           </div>
         )}
+      </div>
+
+      <div className="fixed bottom-0 w-full z-50">
+        <BottomNav />
       </div>
     </>
   );

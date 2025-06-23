@@ -58,7 +58,7 @@ const BottomNav = () => {
 
   const menuItems = [
     { label: 'Home', icon: <Home size={20} />, path: '/home' },
-    { label: 'Friends', icon: <Users size={20} />, path: '/friends' },
+    { label: 'Users', icon: <Users size={20} />, path: '/users' },
     {
       label: 'Chats',
       icon: (
@@ -75,7 +75,7 @@ const BottomNav = () => {
     },
     { label: 'Notifications', icon: <Bell size={20} />, path: '/notifications' },
     { label: 'Shop', icon: <ShoppingBag size={20} />, path: '/shop' },
-    { label: 'Menu', icon: <Menu size={20} />, path: '/menu' }
+    { label: 'Menu', icon: <Menu size={20} /> }
   ];
 
   return (

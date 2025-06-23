@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import Navbar from '../components/Navbar';
+import BottomNav from '../components/BottomNav';
 
 const Users = () => {
   const [users, setUsers] = useState([]);
@@ -56,7 +56,6 @@ const Users = () => {
 
   return (
     <>
-      <Navbar />
       {loading ? (
         <div className="max-w-3xl mx-auto p-6 pt-24 text-center text-lg text-gray-500">
           Memuat pengguna...
@@ -71,7 +70,7 @@ const Users = () => {
             <div className="p-6 border-b border-gray-100">
               <h1 className="text-2xl font-bold text-gray-800">Users</h1>
             </div>
-            
+
             <div>
               {users.length === 0 ? (
                 <div className="p-6 text-center text-lg text-gray-500">
@@ -80,7 +79,7 @@ const Users = () => {
               ) : (
                 users.map((user, index) => (
                   <React.Fragment key={user.id}>
-                    <div 
+                    <div
                       onClick={() => handleUserClick(user.id)}
                       className="flex items-center p-5 hover:bg-gray-50 cursor-pointer transition-colors"
                     >
@@ -107,6 +106,9 @@ const Users = () => {
           </div>
         </div>
       )}
+      <div className="fixed bottom-0 w-full z-50">
+        <BottomNav />
+      </div>
     </>
   );
 };

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Trash2, Loader2 } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import Navbar from '../components/Navbar';
+import BottomNav from '../components/BottomNav';
 
 const Carts = () => {
   const [cartItems, setCartItems] = useState([]);
@@ -320,6 +321,10 @@ const Carts = () => {
           </button>
         </div>
       )}
+      
+      <div className="fixed bottom-0 w-full z-50">
+        <BottomNav />
+      </div>
     </>
   );
 };

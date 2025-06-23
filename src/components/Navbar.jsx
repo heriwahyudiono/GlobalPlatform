@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Search } from 'lucide-react';
+import { ShoppingCart, Search, Clock } from 'lucide-react';
 import { useUser } from '../UserContext';
 import { supabase } from '../supabaseClient';
 
@@ -73,6 +73,10 @@ const Navbar = () => {
 
         {/* Navigation icons */}
         <div className="flex items-center space-x-4 flex-shrink-0">
+
+          <Link to="/transactions" className="text-gray-600 hover:text-green-600">
+            <Clock className="w-6 h-6" />
+          </Link>
 
           <Link to="/carts" className="text-gray-600 hover:text-green-600">
             <ShoppingCart className="w-6 h-6" />

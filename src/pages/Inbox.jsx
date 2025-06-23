@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import BottomNav from '../components/BottomNav';
-import { FiUsers } from 'react-icons/fi'; // Import the users icon
+import { FiUsers } from 'react-icons/fi'; 
 
 const Inbox = () => {
   const [chats, setChats] = useState([]);
