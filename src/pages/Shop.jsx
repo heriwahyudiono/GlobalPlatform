@@ -43,7 +43,7 @@ const Shop = () => {
       .eq('id', user.id)
       .single();
 
-    const res = await fetch('https://global-platform-backend.vercel.app/api/payments/create-transaction', {
+    const res = await fetch('${import.meta.env.VITE_API_URL}/api/payments/create-transaction', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
