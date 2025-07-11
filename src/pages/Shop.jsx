@@ -43,23 +43,27 @@ const Shop = () => {
       .eq('id', user.id)
       .single();
 
-    const res = await fetch('${import.meta.env.VITE_API_URL}/api/payments/create-transaction', {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/payments/create-transaction`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        items: [{
-          quantity: 1,
-          products: {
-            id: product.id,
-            product_name: product.product_name,
-            price: product.price
-          }
-        }],
+        items: [
+          {
+            quantity: 1,
+            products: {
+              id: product.id,
+              product_name: product.product_name,
+              price: product.price,
+            },
+          },
+        ],
         user: {
           name: profile?.name || 'User',
-          email: user.email
-        }
-      })
+          email: user.email,
+        },
+      }),
     });
 
     const result = await res.json();
