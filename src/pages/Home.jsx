@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, MessageCircle, Share2 } from 'lucide-react';
+import Navbar from '../components/Navbar';
 import BottomNav from '../components/BottomNav';
 import { supabase } from '../supabaseClient';
 import { useUser } from '../UserContext';
@@ -88,7 +89,8 @@ const Home = () => {
   }, []);
 
   if (loading) {
-    return <div className="text-center mt-10 text-xl">Memuat postingan...</div>;
+    return
+    <div className="text-center mt-10 text-xl">Memuat postingan...</div>;
   }
 
   if (error) {
@@ -97,6 +99,7 @@ const Home = () => {
 
   return (
     <>
+      <Navbar />
       <div className="container mx-auto px-4 py-8 mb-20">
         <div className="flex flex-col gap-6">
           {posts.map((post) => {

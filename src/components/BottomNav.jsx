@@ -75,7 +75,7 @@ const BottomNav = () => {
     },
     { label: 'Notifications', icon: <Bell size={20} />, path: '/notifications' },
     { label: 'Shop', icon: <ShoppingBag size={20} />, path: '/shop' },
-    { label: 'Menu', icon: <Menu size={20} /> }
+    // { label: 'Menu', icon: <Menu size={20} /> }
   ];
 
   return (

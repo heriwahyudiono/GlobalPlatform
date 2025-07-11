@@ -12,7 +12,6 @@ const Navbar = () => {
   const [searchKeyword, setSearchKeyword] = useState('');
   const navigate = useNavigate();
 
-  // Ambil user ID saat komponen dimuat
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -24,7 +23,6 @@ const Navbar = () => {
     fetchUser();
   }, []);
 
-  // Tutup dropdown saat klik di luar
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -45,10 +43,10 @@ const Navbar = () => {
   return (
     <nav className="bg-white p-4 shadow-md sticky top-0 z-50">
       <div className="container mx-auto flex items-center justify-between">
-        {/* Logo - Hidden on small screens */}
+        {/* Logo */}
         <div className="hidden md:flex flex-col flex-shrink-0">
           <Link to="/home" className="text-green-600 font-bold text-2xl">
-            GlobalMarket
+            GlobalPlatform
           </Link>
         </div>
 
@@ -71,9 +69,8 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Navigation icons */}
+        {/* Icons */}
         <div className="flex items-center space-x-4 flex-shrink-0">
-
           <Link to="/transactions" className="text-gray-600 hover:text-green-600">
             <Clock className="w-6 h-6" />
           </Link>

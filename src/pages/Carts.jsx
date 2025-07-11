@@ -232,7 +232,9 @@ const Carts = () => {
   return (
     <>
       <Navbar />
-      <div className="container mx-auto px-4 py-8 mt-20 max-w-4xl">
+
+      {/* Konten utama dengan padding bawah agar tidak tertutup BottomNav */}
+      <div className="container mx-auto px-4 pt-8 mt-20 max-w-4xl pb-36">
         <h1 className="text-2xl font-bold text-center mb-8">Keranjang Belanja</h1>
 
         {cartItems.length === 0 ? (
@@ -244,7 +246,7 @@ const Carts = () => {
               <label className="text-gray-700">Pilih Semua</label>
             </div>
 
-            <div className="space-y-4 pb-24">
+            <div className="space-y-4">
               {cartItems.map(item => {
                 const product = item.products;
                 const discount = 10;
@@ -299,29 +301,29 @@ const Carts = () => {
                 );
               })}
             </div>
+
+            {/* Tombol Checkout (ikut scroll) */}
+            <div className="mt-6 bg-white border-t shadow-lg p-4 flex flex-col sm:flex-row justify-between items-center gap-4 rounded-lg">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <input type="checkbox" checked={selectAll} onChange={handleSelectAll} className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="text-sm sm:text-base font-semibold">
+                  Total: <span className="text-green-600">Rp{getTotalSelectedPrice()}</span>
+                </span>
+              </div>
+              <button
+                onClick={handleCheckout}
+                className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-lg text-sm sm:text-base font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+                disabled={selectedItems.length === 0 || checkoutLoading}
+              >
+                {checkoutLoading && <Loader2 className="animate-spin w-4 h-4" />}
+                Checkout ({selectedItems.length})
+              </button>
+            </div>
           </>
         )}
       </div>
 
-      {cartItems.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t shadow-lg flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-8">
-          <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto">
-            <input type="checkbox" checked={selectAll} onChange={handleSelectAll} className="w-4 h-4 sm:w-5 sm:h-5" />
-            <span className="text-sm sm:text-base font-semibold">
-              Total: <span className="text-green-600">Rp{getTotalSelectedPrice()}</span>
-            </span>
-          </div>
-          <button
-            onClick={handleCheckout}
-            className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-lg text-sm sm:text-base font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
-            disabled={selectedItems.length === 0 || checkoutLoading}
-          >
-            {checkoutLoading && <Loader2 className="animate-spin w-4 h-4" />}
-            Checkout ({selectedItems.length})
-          </button>
-        </div>
-      )}
-      
+      {/* BottomNav tetap fixed */}
       <div className="fixed bottom-0 w-full z-50">
         <BottomNav />
       </div>
